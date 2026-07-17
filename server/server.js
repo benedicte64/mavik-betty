@@ -8,6 +8,7 @@ const localStore = require('./local-store');
 const jarvis = require('./jarvis');
 const backup = require('./backup');
 const auth = require('./auth');
+const updater = require('./updater');
 
 function loadEnv(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -109,7 +110,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || `${HOST}:${PORT}`}`);
   try {
     if (req.method === 'GET' && url.pathname === '/login') return servePage(res, 'login.html', 'Connexion introuvable');
-    if (req.method === 'GET' && url.pathname === '/health') return json(res, 200, { service: 'Jarvis OS', version: '0.10.0-beta', multiUser: true, setupRequired: auth.setupRequired(), airtableConfigured: Boolean(AIRTABLE_TOKEN), host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString() });
+    if (req.method === 'GET' && url.pathname === '/health') return json(res, 200, { service: 'Jarvis OS', version: updater.currentVersion(), multiUser: true, setupRequired: auth.setupRequired(), airtableConfigured: Boolean(AIRTABLE_TOKEN), updater: updater.state(), host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString() });
     if (req.method === 'GET' && url.pathname === '/api/auth/status') return json(res, 200, { setupRequired: auth.setupRequired(), user: auth.authenticate(req) });
     if (req.method === 'POST' && url.pathname === '/api/auth/setup') return json(res, 201, { user: auth.createInitialAdmin(await readBody(req)) });
     if (req.method === 'POST' && url.pathname === '/api/auth/login') { const body = await readBody(req); return json(res, 200, auth.login(body.username, body.password)); }
@@ -123,6 +124,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/api/auth/me') return json(res, 200, { user });
     if (req.method === 'GET' && url.pathname === '/api/users') return json(res, 200, { users: auth.listUsers(user), roles: auth.ROLE_PERMISSIONS });
     if (req.method === 'POST' && url.pathname === '/api/users') return json(res, 201, { user: auth.createUser(user, await readBody(req)) });
+
+    if (req.method === 'GET' && url.pathname === '/api/system/update') { auth.requirePermission(user, 'users.manage'); return json(res, 200, updater.state()); }
+    if (req.method === 'POST' && url.pathname === '/api/system/update/check') { auth.requirePermission(user, 'users.manage'); return json(res, 200, await updater.check()); }
+    if (req.method === 'POST' && url.pathname === '/api/system/update/download') { auth.requirePermission(user, 'users.manage'); backup.createBackup(); return json(res, 200, await updater.download()); }
+    if (req.method === 'POST' && url.pathname === '/api/system/update/cancel') { auth.requirePermission(user, 'users.manage'); return json(res, 200, updater.clearPending()); }
 
     if (req.method === 'GET' && url.pathname === '/api/jarvis/brief') { auth.requirePermission(user, 'jarvis.use'); return json(res, 200, jarvis.brief(localStore, user)); }
     if (req.method === 'GET' && url.pathname === '/api/jarvis/knowledge') { auth.requirePermission(user, 'jarvis.use'); return json(res, 200, jarvis.knowledge); }
@@ -174,9 +180,11 @@ const server = http.createServer(async (req, res) => {
 });
 
 backup.startAutomaticBackups();
+updater.startAutomaticChecks();
 server.listen(PORT, HOST, () => {
-  console.log(`Jarvis OS started on http://${HOST}:${PORT}`);
+  console.log(`Jarvis OS ${updater.currentVersion()} started on http://${HOST}:${PORT}`);
   console.log('Multi-user authentication: enabled');
+  console.log(`Automatic updates: ${updater.state().enabled ? 'enabled' : 'disabled'}`);
   console.log(`Initial setup required: ${auth.setupRequired() ? 'yes' : 'no'}`);
 });
 
