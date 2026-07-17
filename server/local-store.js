@@ -6,16 +6,14 @@ const crypto = require('node:crypto');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'gcos-local.json');
-const EMPTY_DB = { clients: [], vehicles: [], interventions: [], observations: [], communications: [], events: [] };
+const EMPTY_DB = {
+  clients: [], vehicles: [], interventions: [], observations: [], communications: [],
+  tasks: [], stockItems: [], quotes: [], documents: [], photos: [], events: []
+};
 const DEFAULT_CHECKLIST = {
-  receptionPhotos: false,
-  mileageRecorded: false,
-  clientApproval: false,
-  beforePhotos: false,
-  afterPhotos: false,
-  finalControl: false,
-  reportGenerated: false,
-  clientSignature: false
+  receptionPhotos: false, mileageRecorded: false, clientApproval: false,
+  beforePhotos: false, afterPhotos: false, finalControl: false,
+  reportGenerated: false, clientSignature: false
 };
 
 function ensureStore() {
@@ -47,15 +45,13 @@ function assertCollection(db, collection) {
   if (!Array.isArray(db[collection])) throw Object.assign(new Error('GCOS_COLLECTION_NOT_FOUND'), { status: 404 });
 }
 
-function interventionNumber(db, date = new Date()) {
-  const year = date.getFullYear();
-  const prefix = `GC-${year}-`;
-  const highest = db.interventions.reduce((max, item) => {
+function nextNumber(items, prefix, width = 4) {
+  const highest = items.reduce((max, item) => {
     if (!String(item.number || '').startsWith(prefix)) return max;
     const value = Number(String(item.number).slice(prefix.length));
     return Number.isFinite(value) ? Math.max(max, value) : max;
   }, 0);
-  return `${prefix}${String(highest + 1).padStart(4, '0')}`;
+  return `${prefix}${String(highest + 1).padStart(width, '0')}`;
 }
 
 function normalize(collection, input = {}, current = {}) {
@@ -99,6 +95,31 @@ function normalize(collection, input = {}, current = {}) {
     clean.message = String(input.message ?? current.message ?? '').trim();
     clean.attachmentUrl = String(input.attachmentUrl ?? current.attachmentUrl ?? '').trim();
   }
+  if (collection === 'tasks') {
+    clean.title = String(input.title ?? current.title ?? '').trim();
+    clean.status = input.status ?? current.status ?? 'À faire';
+    clean.priority = input.priority ?? current.priority ?? 'Normale';
+    clean.dueDate = String(input.dueDate ?? current.dueDate ?? '').trim();
+    clean.assignee = String(input.assignee ?? current.assignee ?? '').trim();
+  }
+  if (collection === 'stockItems') {
+    clean.name = String(input.name ?? current.name ?? '').trim();
+    clean.quantity = Number(input.quantity ?? current.quantity ?? 0) || 0;
+    clean.capacity = Number(input.capacity ?? current.capacity ?? 0) || 0;
+    clean.alertThreshold = Number(input.alertThreshold ?? current.alertThreshold ?? 0) || 0;
+    clean.unit = String(input.unit ?? current.unit ?? '').trim();
+  }
+  if (collection === 'quotes') {
+    if (!(input.clientId ?? current.clientId)) throw Object.assign(new Error('CLIENT_REQUIRED'), { status: 400 });
+    clean.status = input.status ?? current.status ?? 'Brouillon';
+    clean.totalTtc = Number(input.totalTtc ?? current.totalTtc ?? 0) || 0;
+    clean.validUntil = String(input.validUntil ?? current.validUntil ?? '').trim();
+  }
+  if (collection === 'documents' || collection === 'photos') {
+    clean.title = String(input.title ?? current.title ?? '').trim();
+    clean.url = String(input.url ?? current.url ?? '').trim();
+    clean.category = String(input.category ?? current.category ?? '').trim();
+  }
   return clean;
 }
 
@@ -113,7 +134,9 @@ function create(collection, input) {
   assertCollection(db, collection);
   const now = new Date().toISOString();
   const normalized = normalize(collection, input);
-  if (collection === 'interventions') normalized.number = interventionNumber(db);
+  const year = new Date().getFullYear();
+  if (collection === 'interventions') normalized.number = nextNumber(db.interventions, `GC-${year}-`);
+  if (collection === 'quotes') normalized.number = nextNumber(db.quotes, `DEV-${year}-`);
   const record = { id: crypto.randomUUID(), ...normalized, createdAt: now, updatedAt: now };
   db[collection].unshift(record);
   db.events.unshift({ id: crypto.randomUUID(), type: `${collection}.created`, recordId: record.id, interventionId: collection === 'interventions' ? record.id : record.interventionId || '', createdAt: now });
@@ -134,18 +157,32 @@ function update(collection, id, input) {
   return db[collection][index];
 }
 
+function remove(collection, id) {
+  const db = readStore();
+  assertCollection(db, collection);
+  const index = db[collection].findIndex((item) => item.id === id);
+  if (index < 0) throw Object.assign(new Error('GCOS_RECORD_NOT_FOUND'), { status: 404 });
+  const [record] = db[collection].splice(index, 1);
+  db.events.unshift({ id: crypto.randomUUID(), type: `${collection}.deleted`, recordId: id, createdAt: new Date().toISOString() });
+  writeStore(db);
+  return record;
+}
+
 function summary() {
   const db = readStore();
+  const today = new Date().toISOString().slice(0, 10);
   return {
-    clients: db.clients.length,
-    vehicles: db.vehicles.length,
-    interventions: db.interventions.length,
-    observations: db.observations.length,
-    communications: db.communications.length,
+    clients: db.clients.length, vehicles: db.vehicles.length, interventions: db.interventions.length,
+    observations: db.observations.length, communications: db.communications.length,
+    tasks: db.tasks.length, quotes: db.quotes.length, documents: db.documents.length,
     openInterventions: db.interventions.filter((item) => !['Terminée', 'Livrée', 'Annulée'].includes(item.status)).length,
+    todayInterventions: db.interventions.filter((item) => item.scheduledDate === today).length,
+    pendingTasks: db.tasks.filter((item) => item.status !== 'Terminée').length,
+    pendingQuotes: db.quotes.filter((item) => ['Brouillon', 'Envoyé', 'À relancer'].includes(item.status)).length,
+    lowStock: db.stockItems.filter((item) => item.alertThreshold > 0 && item.quantity <= item.alertThreshold),
     pendingObservations: db.observations.filter((item) => item.decision === 'En attente').length,
-    recentEvents: db.events.slice(0, 20)
+    recentEvents: db.events.slice(0, 30)
   };
 }
 
-module.exports = { list, create, update, summary, DATA_FILE };
+module.exports = { list, create, update, remove, summary, DATA_FILE };
