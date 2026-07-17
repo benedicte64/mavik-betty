@@ -1,0 +1,35 @@
+name: Inject GCOS communications
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'gcos-comms.js'
+      - '.github/workflows/inject-comms.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  inject:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject shared communications script
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          tag='<script src="gcos-comms.js?v=1"></script>'
+          for name in ['index.html','employe.html','planning.html']:
+              p=Path(name)
+              if not p.exists(): continue
+              text=p.read_text()
+              if 'gcos-comms.js' not in text:
+                  text=text.replace('</body>',tag+'</body>')
+                  p.write_text(text)
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name 'GCOS Jarvis'
+          git config user.email 'actions@users.noreply.github.com'
+          git add index.html employe.html planning.html
+          git diff --cached --quiet || git commit -m 'Activer la messagerie et les alertes GCOS sur toutes les pages'
+          git push
