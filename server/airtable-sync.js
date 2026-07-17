@@ -6,57 +6,13 @@ const BASE_ID = process.env.AIRTABLE_BASE_ID || 'app6i45G4WG2nmQff';
 const TOKEN = process.env.AIRTABLE_TOKEN || '';
 
 const MAP = {
-  clients: {
-    table: 'Clients',
-    fields: {
-      name: 'Nom complet', email: 'Email', phone: 'Téléphone', notes: 'Notes client',
-      status: 'Statut client', source: 'Origine du contact', clientType: 'Type de client'
-    }
-  },
-  vehicles: {
-    table: 'Véhicules',
-    fields: {
-      label: 'Véhicule', brand: 'Marque', model: 'Modèle', year: 'Année', mileage: 'Kilométrage',
-      registration: 'Immatriculation', vin: 'VIN', history: 'Historique / état'
-    },
-    links: { clientId: 'Client' }
-  },
-  interventions: {
-    table: 'Interventions',
-    fields: {
-      number: 'Intervention', scheduledDate: 'Date prévue', status: 'Statut', technician: 'Technicien',
-      report: 'Compte rendu', dryIceKg: 'Glace réelle utilisée kg', dinitrolLiters: 'Dinitrol utilisé L'
-    },
-    links: { clientId: 'Client', vehicleId: 'Véhicule', quoteId: 'Dossier / devis' }
-  },
-  tasks: {
-    table: 'Tâches Jarvis',
-    fields: {
-      title: 'Tâche', status: 'Statut', priority: 'Priorité', assignee: 'Responsable',
-      dueDate: 'Échéance', instructions: 'Instructions', result: 'Résultat / suivi'
-    }
-  },
-  stockItems: {
-    table: 'Stocks et consommables',
-    fields: {
-      name: 'Article', category: 'Catégorie', reference: 'Référence', quantity: 'Quantité en stock',
-      unit: 'Unité', alertThreshold: 'Seuil d’alerte', unitPriceHt: 'Prix unitaire HT', location: 'Emplacement', notes: 'Notes'
-    }
-  },
-  quotes: {
-    table: 'Dossiers et devis',
-    fields: {
-      number: 'Dossier', status: 'Statut', totalTtc: 'Montant TTC', requestDate: 'Date de demande',
-      quoteDate: 'Date du devis', nextAction: 'Prochaine action', followUpDate: 'Échéance de suivi', notes: 'Notes'
-    },
-    links: { clientId: 'Client', vehicleId: 'Véhicule' }
-  },
-  documents: {
-    table: 'Centre documentaire',
-    fields: {
-      title: 'Document', category: 'Catégorie', subcategory: 'Sous-catégorie', summary: 'Résumé Jarvis', addedDate: 'Date d’ajout'
-    }
-  }
+  clients: { table: 'Clients', fields: { name: 'Nom complet', email: 'Email', phone: 'Téléphone', notes: 'Notes client', status: 'Statut client', source: 'Origine du contact', clientType: 'Type de client' } },
+  vehicles: { table: 'Véhicules', fields: { label: 'Véhicule', brand: 'Marque', model: 'Modèle', year: 'Année', mileage: 'Kilométrage', registration: 'Immatriculation', vin: 'VIN', history: 'Historique / état' }, links: { clientId: 'Client' } },
+  interventions: { table: 'Interventions', fields: { number: 'Intervention', scheduledDate: 'Date prévue', status: 'Statut', technician: 'Technicien', report: 'Compte rendu', dryIceKg: 'Glace réelle utilisée kg', dinitrolLiters: 'Dinitrol utilisé L' }, links: { clientId: 'Client', vehicleId: 'Véhicule', quoteId: 'Dossier / devis' } },
+  tasks: { table: 'Tâches Jarvis', fields: { title: 'Tâche', status: 'Statut', priority: 'Priorité', assignee: 'Responsable', dueDate: 'Échéance', instructions: 'Instructions', result: 'Résultat / suivi' } },
+  stockItems: { table: 'Stocks et consommables', fields: { name: 'Article', category: 'Catégorie', reference: 'Référence', quantity: 'Quantité en stock', unit: 'Unité', alertThreshold: 'Seuil d’alerte', unitPriceHt: 'Prix unitaire HT', location: 'Emplacement', notes: 'Notes' } },
+  quotes: { table: 'Dossiers et devis', fields: { number: 'Dossier', status: 'Statut', totalTtc: 'Montant TTC', requestDate: 'Date de demande', quoteDate: 'Date du devis', nextAction: 'Prochaine action', followUpDate: 'Échéance de suivi', notes: 'Notes' }, links: { clientId: 'Client', vehicleId: 'Véhicule' } },
+  documents: { table: 'Centre documentaire', fields: { title: 'Document', category: 'Catégorie', subcategory: 'Sous-catégorie', summary: 'Résumé Jarvis', addedDate: 'Date d’ajout' } }
 };
 
 function configured() { return Boolean(TOKEN); }
@@ -92,9 +48,7 @@ function buildFields(collection, record, store) {
     const value = record[localName];
     if (value !== undefined && value !== null && value !== '') fields[airtableName] = value;
   }
-  if (collection === 'vehicles' && !fields.Véhicule) {
-    fields.Véhicule = [record.brand, record.model, record.registration].filter(Boolean).join(' ') || record.registration || 'Véhicule';
-  }
+  if (collection === 'vehicles' && !fields.Véhicule) fields.Véhicule = [record.brand, record.model, record.registration].filter(Boolean).join(' ') || 'Véhicule';
   for (const [localName, airtableName] of Object.entries(config.links || {})) {
     const linkedId = findLinkedAirtableId(store, record[localName]);
     if (linkedId) fields[airtableName] = [linkedId];
@@ -109,7 +63,9 @@ async function push(collection, record, store) {
   const payload = record.airtableId
     ? await request(config.table, { method: 'PATCH', recordId: record.airtableId, body: { fields, typecast: true } })
     : await request(config.table, { method: 'POST', body: { fields, typecast: true } });
-  return { collection, localId: record.id, airtableId: payload.id, syncedAt: new Date().toISOString(), fields: payload.fields || fields };
+  const syncedAt = new Date().toISOString();
+  if (record.id) store.update(collection, record.id, { airtableId: payload.id, airtableSyncedAt: syncedAt, airtableSyncError: '' });
+  return { collection, localId: record.id, airtableId: payload.id, syncedAt, fields: payload.fields || fields };
 }
 
 async function pushAll(store, collections = Object.keys(MAP)) {
@@ -118,14 +74,15 @@ async function pushAll(store, collections = Object.keys(MAP)) {
     if (!MAP[collection]) continue;
     for (const record of store.list(collection)) {
       try { results.push({ ok: true, ...(await push(collection, record, store)) }); }
-      catch (error) { results.push({ ok: false, collection, localId: record.id, error: error.message }); }
+      catch (error) {
+        if (record.id) store.update(collection, record.id, { airtableSyncError: error.message });
+        results.push({ ok: false, collection, localId: record.id, error: error.message });
+      }
     }
   }
   return { configured: configured(), total: results.length, succeeded: results.filter((item) => item.ok).length, failed: results.filter((item) => !item.ok).length, results };
 }
 
-function status() {
-  return { configured: configured(), baseId: BASE_ID, supportedCollections: Object.keys(MAP) };
-}
+function status() { return { configured: configured(), baseId: BASE_ID, supportedCollections: Object.keys(MAP) }; }
 
 module.exports = { MAP, configured, status, push, pushAll };
