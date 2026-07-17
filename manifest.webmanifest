@@ -1,0 +1,20 @@
+{
+  "name": "GCOS — GentleCarE Operating System",
+  "short_name": "GCOS",
+  "description": "Système d’exploitation opérationnel de GentleCarE",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d0f13",
+  "theme_color": "#111318",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
