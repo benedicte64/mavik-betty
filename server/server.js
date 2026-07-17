@@ -1,7 +1,28 @@
 'use strict';
 
+const fs = require('node:fs');
+const path = require('node:path');
 const http = require('node:http');
 const { URL } = require('node:url');
+
+function loadEnv(filePath) {
+  if (!fs.existsSync(filePath)) return;
+  const content = fs.readFileSync(filePath, 'utf8');
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const separator = line.indexOf('=');
+    if (separator < 1) continue;
+    const key = line.slice(0, separator).trim();
+    let value = line.slice(separator + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    if (!(key in process.env)) process.env[key] = value;
+  }
+}
+
+loadEnv(path.join(__dirname, '.env'));
 
 const PORT = Number(process.env.GCOS_PORT || 4782);
 const HOST = process.env.GCOS_HOST || '127.0.0.1';
@@ -70,9 +91,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/health') {
       return json(res, 200, {
         service: 'GCOS Server',
-        version: '0.2.0',
+        version: '0.3.0',
         airtableConfigured: Boolean(AIRTABLE_TOKEN),
         host: HOST,
+        uptimeSeconds: Math.round(process.uptime()),
         time: new Date().toISOString()
       });
     }
@@ -120,3 +142,12 @@ server.listen(PORT, HOST, () => {
   console.log(`GCOS Server started on http://${HOST}:${PORT}`);
   console.log(`Airtable: ${AIRTABLE_TOKEN ? 'configured' : 'not configured'}`);
 });
+
+function shutdown(signal) {
+  console.log(`\n${signal} received. Stopping GCOS Server...`);
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 5000).unref();
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
