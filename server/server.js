@@ -6,6 +6,7 @@ const http = require('node:http');
 const { URL } = require('node:url');
 const localStore = require('./local-store');
 const jarvis = require('./jarvis');
+const backup = require('./backup');
 
 function loadEnv(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -25,12 +26,12 @@ function loadEnv(filePath) {
 loadEnv(path.join(__dirname, '.env'));
 
 const PORT = Number(process.env.GCOS_PORT || 4782);
-const HOST = process.env.GCOS_HOST || '127.0.0.1';
+const HOST = process.env.GCOS_HOST || '0.0.0.0';
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || 'app6i45G4WG2nmQff';
 const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || '';
 const ALLOWED_ORIGIN = process.env.GCOS_ALLOWED_ORIGIN || '*';
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const LOCAL_COLLECTIONS = new Set(['clients', 'vehicles', 'interventions', 'observations', 'communications']);
+const LOCAL_COLLECTIONS = new Set(['clients', 'vehicles', 'interventions', 'observations', 'communications', 'tasks', 'stocks', 'quotes', 'documents', 'photos']);
 
 function commonHeaders(contentType) {
   return {
@@ -53,7 +54,7 @@ async function readBody(req) {
   let size = 0;
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > 2_000_000) throw Object.assign(new Error('GCOS_BODY_TOO_LARGE'), { status: 413 });
+    if (size > 10_000_000) throw Object.assign(new Error('GCOS_BODY_TOO_LARGE'), { status: 413 });
     chunks.push(chunk);
   }
   if (!chunks.length) return {};
@@ -95,14 +96,15 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return json(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host || `${HOST}:${PORT}`}`);
   try {
-    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha')) return servePage(res, 'alpha.html', 'GCOS Alpha introuvable');
+    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha')) return servePage(res, 'alpha.html', 'Jarvis OS introuvable');
     if (req.method === 'GET' && url.pathname === '/jarvis') return servePage(res, 'jarvis.html', 'Jarvis introuvable');
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { service: 'GCOS Server', version: '0.8.0-alpha', jarvis: true, knowledge: true, airtableConfigured: Boolean(AIRTABLE_TOKEN), smsProviderConfigured: false, localStore: localStore.DATA_FILE, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString() });
+      return json(res, 200, { service: 'Jarvis OS', version: '0.9.0-beta', jarvis: true, knowledge: true, backups: true, airtableConfigured: Boolean(AIRTABLE_TOKEN), localStore: localStore.DATA_FILE, backupDirectory: backup.BACKUP_DIR, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString() });
     }
     if (req.method === 'GET' && url.pathname === '/api/jarvis/brief') return json(res, 200, jarvis.brief(localStore));
     if (req.method === 'GET' && url.pathname === '/api/jarvis/knowledge') return json(res, 200, jarvis.knowledge);
     if (req.method === 'POST' && url.pathname === '/api/jarvis/command') return json(res, 200, jarvis.execute(localStore, await readBody(req)));
+    if (req.method === 'POST' && url.pathname === '/api/system/backup') return json(res, 201, { path: backup.createBackup() });
     if (req.method === 'GET' && url.pathname === '/api/local/summary') return json(res, 200, localStore.summary());
 
     const localRecordMatch = url.pathname.match(/^\/api\/local\/([^/]+)\/([^/]+)$/);
@@ -123,15 +125,13 @@ const server = http.createServer(async (req, res) => {
     const recordMatch = url.pathname.match(/^\/api\/airtable\/tables\/([^/]+)\/([^/]+)$/);
     if (recordMatch && req.method === 'PATCH') {
       if (!requireAirtable(res)) return;
-      const payload = await airtableRequest(decodeURIComponent(recordMatch[1]), { method: 'PATCH', recordId: decodeURIComponent(recordMatch[2]), body: await readBody(req) });
-      return json(res, 200, payload);
+      return json(res, 200, await airtableRequest(decodeURIComponent(recordMatch[1]), { method: 'PATCH', recordId: decodeURIComponent(recordMatch[2]), body: await readBody(req) }));
     }
 
     const tableMatch = url.pathname.match(/^\/api\/airtable\/tables\/([^/]+)$/);
     if (tableMatch && req.method === 'GET') {
       if (!requireAirtable(res)) return;
-      const payload = await airtableRequest(decodeURIComponent(tableMatch[1]), { query: { maxRecords: url.searchParams.get('maxRecords') || 50, view: url.searchParams.get('view') || undefined, filterByFormula: url.searchParams.get('filterByFormula') || undefined } });
-      return json(res, 200, payload);
+      return json(res, 200, await airtableRequest(decodeURIComponent(tableMatch[1]), { query: { maxRecords: url.searchParams.get('maxRecords') || 50, view: url.searchParams.get('view') || undefined, filterByFormula: url.searchParams.get('filterByFormula') || undefined } }));
     }
     if (tableMatch && req.method === 'POST') {
       if (!requireAirtable(res)) return;
@@ -145,15 +145,16 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+backup.startAutomaticBackups();
 server.listen(PORT, HOST, () => {
-  console.log(`GCOS Server started on http://${HOST}:${PORT}`);
-  console.log(`Alpha dashboard: http://${HOST}:${PORT}/alpha`);
-  console.log(`Jarvis mobile: http://${HOST}:${PORT}/jarvis`);
+  console.log(`Jarvis OS started on http://${HOST}:${PORT}`);
+  console.log(`Dashboard: http://localhost:${PORT}/`);
+  console.log(`Jarvis mobile: http://localhost:${PORT}/jarvis`);
   console.log(`Airtable: ${AIRTABLE_TOKEN ? 'configured' : 'not configured'}`);
 });
 
 function shutdown(signal) {
-  console.log(`\n${signal} received. Stopping GCOS Server...`);
+  console.log(`\n${signal} received. Stopping Jarvis OS...`);
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();
 }
