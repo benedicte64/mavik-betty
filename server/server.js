@@ -96,7 +96,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha')) return serveDashboard(res);
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { service: 'GCOS Server', version: '0.5.0-alpha', airtableConfigured: Boolean(AIRTABLE_TOKEN), smsProviderConfigured: false, localStore: localStore.DATA_FILE, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString() });
+      return json(res, 200, { service: 'GCOS Server', version: '0.6.0-alpha', airtableConfigured: Boolean(AIRTABLE_TOKEN), smsProviderConfigured: false, localStore: localStore.DATA_FILE, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString() });
     }
     if (req.method === 'GET' && url.pathname === '/api/local/summary') return json(res, 200, localStore.summary());
 
