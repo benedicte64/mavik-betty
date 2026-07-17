@@ -85,9 +85,9 @@ async function airtableRequest(table, options = {}) {
   return payload;
 }
 
-function serveDashboard(res) {
-  const filePath = path.join(PUBLIC_DIR, 'alpha.html');
-  if (!fs.existsSync(filePath)) return html(res, 404, '<h1>GCOS Alpha introuvable</h1>');
+function servePage(res, fileName, missingMessage) {
+  const filePath = path.join(PUBLIC_DIR, fileName);
+  if (!fs.existsSync(filePath)) return html(res, 404, `<h1>${missingMessage}</h1>`);
   return html(res, 200, fs.readFileSync(filePath, 'utf8'));
 }
 
@@ -95,7 +95,8 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return json(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host || `${HOST}:${PORT}`}`);
   try {
-    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha')) return serveDashboard(res);
+    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha')) return servePage(res, 'alpha.html', 'GCOS Alpha introuvable');
+    if (req.method === 'GET' && url.pathname === '/jarvis') return servePage(res, 'jarvis.html', 'Jarvis introuvable');
     if (req.method === 'GET' && url.pathname === '/health') {
       return json(res, 200, { service: 'GCOS Server', version: '0.7.0-alpha', jarvis: true, airtableConfigured: Boolean(AIRTABLE_TOKEN), smsProviderConfigured: false, localStore: localStore.DATA_FILE, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString() });
     }
@@ -146,7 +147,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`GCOS Server started on http://${HOST}:${PORT}`);
   console.log(`Alpha dashboard: http://${HOST}:${PORT}/alpha`);
-  console.log('Jarvis: enabled');
+  console.log(`Jarvis mobile: http://${HOST}:${PORT}/jarvis`);
   console.log(`Airtable: ${AIRTABLE_TOKEN ? 'configured' : 'not configured'}`);
 });
 
