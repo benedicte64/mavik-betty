@@ -1,12 +1,12 @@
 {
   "name": "gcos-server",
-  "version": "0.3.0",
+  "version": "0.4.0-alpha.1",
   "private": true,
   "description": "Serveur local GCOS pour GentleCarE",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node server.js --check"
+    "check": "node --check server.js && node --check local-store.js"
   },
   "engines": {
     "node": ">=20"
