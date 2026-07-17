@@ -7,6 +7,7 @@ const { URL } = require('node:url');
 const localStore = require('./local-store');
 const jarvis = require('./jarvis');
 const backup = require('./backup');
+const auth = require('./auth');
 
 function loadEnv(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -37,7 +38,7 @@ function commonHeaders(contentType) {
   return {
     'Content-Type': contentType,
     'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-    'Access-Control-Allow-Headers': 'Content-Type, X-GCOS-Client',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-GCOS-Session, X-GCOS-Client',
     'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
     'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff',
@@ -92,48 +93,69 @@ function servePage(res, fileName, missingMessage) {
   return html(res, 200, fs.readFileSync(filePath, 'utf8'));
 }
 
+function requireUser(req) {
+  const user = auth.authenticate(req);
+  if (!user) throw Object.assign(new Error('AUTH_REQUIRED'), { status: 401 });
+  return user;
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return json(res, 204, {});
   const url = new URL(req.url, `http://${req.headers.host || `${HOST}:${PORT}`}`);
   try {
+    if (req.method === 'GET' && url.pathname === '/login') return servePage(res, 'login.html', 'Connexion introuvable');
+    if (req.method === 'GET' && url.pathname === '/health') return json(res, 200, { service: 'Jarvis OS', version: '0.10.0-beta', multiUser: true, setupRequired: auth.setupRequired(), airtableConfigured: Boolean(AIRTABLE_TOKEN), host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString() });
+    if (req.method === 'GET' && url.pathname === '/api/auth/status') return json(res, 200, { setupRequired: auth.setupRequired(), user: auth.authenticate(req) });
+    if (req.method === 'POST' && url.pathname === '/api/auth/setup') return json(res, 201, { user: auth.createInitialAdmin(await readBody(req)) });
+    if (req.method === 'POST' && url.pathname === '/api/auth/login') return json(res, 200, auth.login((await readBody(req)).username, (await readBody(req)).password));
+    if (req.method === 'POST' && url.pathname === '/api/auth/logout') { auth.logout(auth.tokenFromRequest ? auth.tokenFromRequest(req) : String(req.headers['x-gcos-session'] || '')); return json(res, 200, { ok: true }); }
+
+    const user = requireUser(req);
+
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha')) return servePage(res, 'alpha.html', 'Jarvis OS introuvable');
-    if (req.method === 'GET' && url.pathname === '/jarvis') return servePage(res, 'jarvis.html', 'Jarvis introuvable');
-    if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { service: 'Jarvis OS', version: '0.9.0-beta', jarvis: true, knowledge: true, backups: true, airtableConfigured: Boolean(AIRTABLE_TOKEN), localStore: localStore.DATA_FILE, backupDirectory: backup.BACKUP_DIR, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString() });
-    }
-    if (req.method === 'GET' && url.pathname === '/api/jarvis/brief') return json(res, 200, jarvis.brief(localStore));
-    if (req.method === 'GET' && url.pathname === '/api/jarvis/knowledge') return json(res, 200, jarvis.knowledge);
-    if (req.method === 'POST' && url.pathname === '/api/jarvis/command') return json(res, 200, jarvis.execute(localStore, await readBody(req)));
-    if (req.method === 'POST' && url.pathname === '/api/system/backup') return json(res, 201, { path: backup.createBackup() });
-    if (req.method === 'GET' && url.pathname === '/api/local/summary') return json(res, 200, localStore.summary());
+    if (req.method === 'GET' && url.pathname === '/jarvis') { auth.requirePermission(user, 'jarvis.use'); return servePage(res, 'jarvis.html', 'Jarvis introuvable'); }
+    if (req.method === 'GET' && url.pathname === '/api/auth/me') return json(res, 200, { user });
+    if (req.method === 'GET' && url.pathname === '/api/users') return json(res, 200, { users: auth.listUsers(user), roles: auth.ROLE_PERMISSIONS });
+    if (req.method === 'POST' && url.pathname === '/api/users') return json(res, 201, { user: auth.createUser(user, await readBody(req)) });
+
+    if (req.method === 'GET' && url.pathname === '/api/jarvis/brief') { auth.requirePermission(user, 'jarvis.use'); return json(res, 200, jarvis.brief(localStore, user)); }
+    if (req.method === 'GET' && url.pathname === '/api/jarvis/knowledge') { auth.requirePermission(user, 'jarvis.use'); return json(res, 200, jarvis.knowledge); }
+    if (req.method === 'POST' && url.pathname === '/api/jarvis/command') { auth.requirePermission(user, 'jarvis.use'); return json(res, 200, jarvis.execute(localStore, { ...(await readBody(req)), user })); }
+    if (req.method === 'POST' && url.pathname === '/api/system/backup') { auth.requirePermission(user, 'users.manage'); return json(res, 201, { path: backup.createBackup() }); }
+    if (req.method === 'GET' && url.pathname === '/api/local/summary') { auth.requirePermission(user, 'dashboard.read'); return json(res, 200, localStore.summary()); }
 
     const localRecordMatch = url.pathname.match(/^\/api\/local\/([^/]+)\/([^/]+)$/);
     if (localRecordMatch && req.method === 'PATCH') {
       const collection = decodeURIComponent(localRecordMatch[1]);
       if (!LOCAL_COLLECTIONS.has(collection)) return json(res, 404, { error: 'GCOS_COLLECTION_NOT_FOUND' });
-      return json(res, 200, localStore.update(collection, decodeURIComponent(localRecordMatch[2]), await readBody(req)));
+      auth.requirePermission(user, auth.collectionPermission(collection, req.method));
+      return json(res, 200, localStore.update(collection, decodeURIComponent(localRecordMatch[2]), { ...(await readBody(req)), updatedBy: user.id, updatedByName: user.name }));
     }
 
     const localCollectionMatch = url.pathname.match(/^\/api\/local\/([^/]+)$/);
     if (localCollectionMatch) {
       const collection = decodeURIComponent(localCollectionMatch[1]);
       if (!LOCAL_COLLECTIONS.has(collection)) return json(res, 404, { error: 'GCOS_COLLECTION_NOT_FOUND' });
+      auth.requirePermission(user, auth.collectionPermission(collection, req.method));
       if (req.method === 'GET') return json(res, 200, { records: localStore.list(collection) });
-      if (req.method === 'POST') return json(res, 201, localStore.create(collection, await readBody(req)));
+      if (req.method === 'POST') return json(res, 201, localStore.create(collection, { ...(await readBody(req)), createdBy: user.id, createdByName: user.name }));
     }
 
     const recordMatch = url.pathname.match(/^\/api\/airtable\/tables\/([^/]+)\/([^/]+)$/);
     if (recordMatch && req.method === 'PATCH') {
+      auth.requirePermission(user, 'interventions.write');
       if (!requireAirtable(res)) return;
       return json(res, 200, await airtableRequest(decodeURIComponent(recordMatch[1]), { method: 'PATCH', recordId: decodeURIComponent(recordMatch[2]), body: await readBody(req) }));
     }
 
     const tableMatch = url.pathname.match(/^\/api\/airtable\/tables\/([^/]+)$/);
     if (tableMatch && req.method === 'GET') {
+      auth.requirePermission(user, 'dashboard.read');
       if (!requireAirtable(res)) return;
       return json(res, 200, await airtableRequest(decodeURIComponent(tableMatch[1]), { query: { maxRecords: url.searchParams.get('maxRecords') || 50, view: url.searchParams.get('view') || undefined, filterByFormula: url.searchParams.get('filterByFormula') || undefined } }));
     }
     if (tableMatch && req.method === 'POST') {
+      auth.requirePermission(user, 'interventions.write');
       if (!requireAirtable(res)) return;
       return json(res, 201, await airtableRequest(decodeURIComponent(tableMatch[1]), { method: 'POST', body: await readBody(req) }));
     }
@@ -148,9 +170,8 @@ const server = http.createServer(async (req, res) => {
 backup.startAutomaticBackups();
 server.listen(PORT, HOST, () => {
   console.log(`Jarvis OS started on http://${HOST}:${PORT}`);
-  console.log(`Dashboard: http://localhost:${PORT}/`);
-  console.log(`Jarvis mobile: http://localhost:${PORT}/jarvis`);
-  console.log(`Airtable: ${AIRTABLE_TOKEN ? 'configured' : 'not configured'}`);
+  console.log(`Multi-user authentication: enabled`);
+  console.log(`Initial setup required: ${auth.setupRequired() ? 'yes' : 'no'}`);
 });
 
 function shutdown(signal) {
