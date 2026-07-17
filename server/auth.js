@@ -54,9 +54,7 @@ function publicUser(user) {
   return safe;
 }
 
-function setupRequired() {
-  return readUsers().length === 0;
-}
+function setupRequired() { return readUsers().length === 0; }
 
 function createInitialAdmin(input = {}) {
   if (!setupRequired()) throw Object.assign(new Error('GCOS_SETUP_ALREADY_COMPLETED'), { status: 409 });
@@ -101,13 +99,11 @@ function login(username, password) {
   return { token, user: publicUser(user), expiresInSeconds: SESSION_TTL_MS / 1000 };
 }
 
-function logout(token) {
-  if (token) sessions.delete(token);
-}
+function logout(token) { if (token) sessions.delete(token); }
 
 function tokenFromRequest(req) {
-  const auth = String(req.headers.authorization || '');
-  if (auth.startsWith('Bearer ')) return auth.slice(7).trim();
+  const authorization = String(req.headers.authorization || '');
+  if (authorization.startsWith('Bearer ')) return authorization.slice(7).trim();
   return String(req.headers['x-gcos-session'] || '').trim();
 }
 
@@ -136,9 +132,7 @@ function requirePermission(user, permission) {
   return true;
 }
 
-function collectionPermission(collection, method) {
-  return `${collection}.${method === 'GET' ? 'read' : 'write'}`;
-}
+function collectionPermission(collection, method) { return `${collection}.${method === 'GET' ? 'read' : 'write'}`; }
 
 module.exports = {
   USERS_FILE,
@@ -149,6 +143,7 @@ module.exports = {
   listUsers,
   login,
   logout,
+  tokenFromRequest,
   authenticate,
   can,
   requirePermission,
