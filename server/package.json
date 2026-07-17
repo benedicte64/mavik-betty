@@ -1,6 +1,6 @@
 {
   "name": "gcos-server",
-  "version": "0.5.0-alpha.1",
+  "version": "0.6.0-alpha.1",
   "private": true,
   "description": "Serveur local GCOS pour GentleCarE",
   "main": "server.js",
