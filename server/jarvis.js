@@ -1,5 +1,7 @@
 'use strict';
 
+const { knowledge, search: searchKnowledge } = require('./jarvis-knowledge');
+
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -27,6 +29,17 @@ function brief(store) {
   };
 }
 
+function pricingAnswer(normalized) {
+  if (!/tarif|prix|combien|coûte|coute/.test(normalized)) return null;
+  const p = knowledge.pricing;
+  if (/fondateur|pass/.test(normalized)) return `Le Pack Intégral Pass Fondateur est à ${p.integralFounderTtc} € TTC, soit ${p.founderDiscountPercent} % de remise.`;
+  if (/club/.test(normalized)) return `Le tarif Club du Pack Intégral est à ${p.integralClubTtc} € TTC.`;
+  if (/déplacement|deplacement/.test(normalized)) return `Le déplacement est facturé ${p.travelRateExVat} € HT par heure.`;
+  if (/heure|horaire|main.?d.?œuvre|main.?d.?oeuvre/.test(normalized)) return `Le tarif atelier est de ${p.hourlyRateExVat} € HT par heure.`;
+  if (/intégral|integral|cryo.*dinitrol|dinitrol.*cryo/.test(normalized)) return `Le Pack Intégral Cryo + Dinitrol est à ${p.integralPublicTtc} € TTC au tarif public, ${p.integralClubTtc} € TTC au tarif Club et ${p.integralFounderTtc} € TTC avec le Pass Fondateur.`;
+  return null;
+}
+
 function execute(store, input = {}) {
   const text = String(input.text || '').trim();
   const normalized = text.toLowerCase();
@@ -35,6 +48,27 @@ function execute(store, input = {}) {
   if (/bonjour|point|résumé|resume|journée|journee/.test(normalized)) {
     const data = brief(store);
     return { type: 'brief', answer: data.greeting, data };
+  }
+
+  const price = pricingAnswer(normalized);
+  if (price) return { type: 'knowledge', answer: price, data: { source: 'GentleCarE' } };
+
+  if (/adresse|siège|siege/.test(normalized)) {
+    return { type: 'knowledge', answer: `L’adresse GentleCarE est ${knowledge.company.address}.`, data: knowledge.company };
+  }
+
+  if (/glace|carbonique|pellet/.test(normalized)) {
+    const d = knowledge.dryIce;
+    return { type: 'knowledge', answer: `Base de calcul : ${knowledge.operations.dryIceKgPerVehicle} kg par véhicule. Glace à ${d.standardPricePerKg} €/kg, ou ${d.volumePricePerKg} €/kg en volume, plus ${d.deliveryAdr} € de livraison ADR.`, data: d };
+  }
+
+  if (/pression|compresseur|ibl2500|machine cryo/.test(normalized)) {
+    const e = knowledge.equipment;
+    return { type: 'knowledge', answer: `Machine ${e.cryogenicMachine} : travail prévu à ${e.workingPressureBar} bars, maximum ${e.maximumPressureBar} bars. Contrainte électrique actuelle : ${e.electricalConstraintKw} kW, objectif ${e.desiredElectricalPowerKw} kW.`, data: e };
+  }
+
+  if (/règle|regle|procédure|procedure|consigne/.test(normalized)) {
+    return { type: 'knowledge', answer: knowledge.workflowRules.join(' '), data: { rules: knowledge.workflowRules } };
   }
 
   if (/clients?/.test(normalized) && /(combien|nombre)/.test(normalized)) {
@@ -59,10 +93,15 @@ function execute(store, input = {}) {
     return { type: 'interventions', answer: `${open.length} intervention(s) active(s).`, data: { records: open } };
   }
 
+  const matches = searchKnowledge(text);
+  if (matches.length) {
+    return { type: 'knowledge-search', answer: matches.map((item) => `${item.path} : ${item.value}`).join('\n'), data: { matches } };
+  }
+
   return {
     type: 'message',
-    answer: 'Commande reçue. Pour cette première version, demandez le point du jour, le nombre de clients ou véhicules, les interventions actives, ou recherchez un véhicule par modèle, plaque ou VIN.'
+    answer: 'Je n’ai pas encore cette information dans GCOS. Elle pourra être ajoutée à la mémoire GentleCarE.'
   };
 }
 
-module.exports = { brief, execute };
+module.exports = { brief, execute, knowledge };
