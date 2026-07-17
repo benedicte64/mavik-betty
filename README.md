@@ -1,6 +1,6 @@
 # GCOS — GentleCarE Operating System
 
-MVP opérationnel de Jarvis pour GentleCarE.
+MVP opérationnel de Jarvis pour GentleCarE, développé et versionné directement dans GitHub.
 
 ## Fonctionnalités disponibles
 
@@ -15,9 +15,20 @@ MVP opérationnel de Jarvis pour GentleCarE.
 - Journal automatique des actions
 - Sauvegarde locale dans le navigateur
 
-## Test immédiat
+## Déploiement GitHub Pages
 
-Le MVP est une application statique contenue dans `index.html`.
+Le workflow `.github/workflows/deploy-pages.yml` publie automatiquement l’application à chaque modification de la branche `main`.
+
+Dans GitHub :
+
+1. Ouvrir **Settings**.
+2. Ouvrir **Pages**.
+3. Dans **Build and deployment**, sélectionner **GitHub Actions**.
+4. Ouvrir l’onglet **Actions** et relancer le workflow `Deploy GCOS to GitHub Pages` si nécessaire.
+
+L’adresse générée sera affichée dans le workflow et dans la section **Deployments** du dépôt.
+
+## Test local
 
 Dans GitHub Codespaces :
 
@@ -39,4 +50,13 @@ Ouvrir ensuite `http://localhost:4173`.
 
 ## État technique
 
-Cette première version ne transmet aucune donnée sensible à un serveur. Les données sont conservées dans `localStorage` sur l’appareil utilisé. L’intégration Airtable et l’authentification seront ajoutées dans les prochains sprints.
+Cette première version ne transmet aucune donnée sensible à un serveur. Les données sont conservées dans `localStorage` sur l’appareil utilisé.
+
+## Prochains blocs
+
+1. Authentification David / Bénédicte.
+2. Connexion Airtable en lecture et écriture.
+3. Connexion Gmail avec préparation de brouillons.
+4. Stockage centralisé des photos et documents.
+5. Validation humaine avant toute action sensible.
+6. Installation de GCOS comme application sur iPhone.
