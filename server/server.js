@@ -5,6 +5,7 @@ const path = require('node:path');
 const http = require('node:http');
 const { URL } = require('node:url');
 const localStore = require('./local-store');
+const jarvis = require('./jarvis');
 
 function loadEnv(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -96,8 +97,10 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha')) return serveDashboard(res);
     if (req.method === 'GET' && url.pathname === '/health') {
-      return json(res, 200, { service: 'GCOS Server', version: '0.6.0-alpha', airtableConfigured: Boolean(AIRTABLE_TOKEN), smsProviderConfigured: false, localStore: localStore.DATA_FILE, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString() });
+      return json(res, 200, { service: 'GCOS Server', version: '0.7.0-alpha', jarvis: true, airtableConfigured: Boolean(AIRTABLE_TOKEN), smsProviderConfigured: false, localStore: localStore.DATA_FILE, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString() });
     }
+    if (req.method === 'GET' && url.pathname === '/api/jarvis/brief') return json(res, 200, jarvis.brief(localStore));
+    if (req.method === 'POST' && url.pathname === '/api/jarvis/command') return json(res, 200, jarvis.execute(localStore, await readBody(req)));
     if (req.method === 'GET' && url.pathname === '/api/local/summary') return json(res, 200, localStore.summary());
 
     const localRecordMatch = url.pathname.match(/^\/api\/local\/([^/]+)\/([^/]+)$/);
@@ -143,6 +146,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`GCOS Server started on http://${HOST}:${PORT}`);
   console.log(`Alpha dashboard: http://${HOST}:${PORT}/alpha`);
+  console.log('Jarvis: enabled');
   console.log(`Airtable: ${AIRTABLE_TOKEN ? 'configured' : 'not configured'}`);
 });
 
