@@ -6,6 +6,7 @@ import { TaskEngine } from './task-engine.js';
 import { NotificationEngine } from './notification-engine.js';
 import { WorkflowEngine } from './workflow-engine.js';
 import { MemoryEngine } from '../jarvis/memory-engine.js';
+import { IntelligenceEngine } from '../jarvis/intelligence-engine.js';
 import { createAtelierModule } from '../modules/atelier/index.js';
 
 export function createGCOSCore(options = {}) {
@@ -20,9 +21,18 @@ export function createGCOSCore(options = {}) {
   const notifications = new NotificationEngine({ storage, events, audit });
   const workflows = new WorkflowEngine({ storage, events, audit });
   const memory = new MemoryEngine({ storage, events });
+  const intelligence = new IntelligenceEngine({
+    storage,
+    events,
+    audit,
+    tasks,
+    notifications,
+    rules: options.jarvisRules,
+    config: options.jarvisConfig,
+  });
 
   const core = {
-    version: '0.3.0',
+    version: '0.4.0',
     name: options.name ?? 'GCOS',
     environment: options.environment ?? 'browser',
     events,
@@ -32,12 +42,13 @@ export function createGCOSCore(options = {}) {
     tasks,
     notifications,
     workflows,
-    jarvis: { memory },
+    jarvis: { memory, intelligence },
     atelier: null,
 
     async start(context = {}) {
       await events.emit('core:starting', { core }, { source: 'core' });
       await modules.startAll({ core, ...context });
+      intelligence.analyze({ actor: context.actor ?? 'jarvis' });
       audit.record({
         actor: context.actor ?? 'system',
         action: 'core.started',
@@ -77,4 +88,6 @@ export { TaskEngine } from './task-engine.js';
 export { NotificationEngine } from './notification-engine.js';
 export { WorkflowEngine } from './workflow-engine.js';
 export { MemoryEngine } from '../jarvis/memory-engine.js';
+export { IntelligenceEngine } from '../jarvis/intelligence-engine.js';
+export { defaultJarvisRules } from '../jarvis/default-rules.js';
 export { createAtelierModule, AtelierService } from '../modules/atelier/index.js';
