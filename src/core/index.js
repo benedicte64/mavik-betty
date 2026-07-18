@@ -6,6 +6,7 @@ import { TaskEngine } from './task-engine.js';
 import { NotificationEngine } from './notification-engine.js';
 import { WorkflowEngine } from './workflow-engine.js';
 import { MemoryEngine } from '../jarvis/memory-engine.js';
+import { createAtelierModule } from '../modules/atelier/index.js';
 
 export function createGCOSCore(options = {}) {
   const events = new EventBus();
@@ -21,7 +22,7 @@ export function createGCOSCore(options = {}) {
   const memory = new MemoryEngine({ storage, events });
 
   const core = {
-    version: '0.2.0',
+    version: '0.3.0',
     name: options.name ?? 'GCOS',
     environment: options.environment ?? 'browser',
     events,
@@ -32,6 +33,7 @@ export function createGCOSCore(options = {}) {
     notifications,
     workflows,
     jarvis: { memory },
+    atelier: null,
 
     async start(context = {}) {
       await events.emit('core:starting', { core }, { source: 'core' });
@@ -60,6 +62,10 @@ export function createGCOSCore(options = {}) {
     },
   };
 
+  const atelierModule = createAtelierModule(core);
+  modules.register(atelierModule);
+  core.atelier = atelierModule.service;
+
   return core;
 }
 
@@ -71,3 +77,4 @@ export { TaskEngine } from './task-engine.js';
 export { NotificationEngine } from './notification-engine.js';
 export { WorkflowEngine } from './workflow-engine.js';
 export { MemoryEngine } from '../jarvis/memory-engine.js';
+export { createAtelierModule, AtelierService } from '../modules/atelier/index.js';
