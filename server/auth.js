@@ -7,7 +7,10 @@ const crypto = require('node:crypto');
 const DATA_DIR = path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const RECOVERY_WINDOW_MS = 15 * 60 * 1000;
+const MAX_RECOVERY_ATTEMPTS = 5;
 const sessions = new Map();
+const recoveryAttempts = new Map();
 
 const ROLE_PERMISSIONS = {
   admin: ['*'],
@@ -35,6 +38,10 @@ function writeUsers(users) {
   fs.renameSync(tmp, USERS_FILE);
 }
 
+function normalizeEmail(email) { return String(email || '').trim().toLowerCase(); }
+function validEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email)); }
+function validPin(pin) { return /^\d{4}$/.test(String(pin || '')); }
+
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
   const hash = crypto.scryptSync(String(password), salt, 64).toString('hex');
   return `${salt}:${hash}`;
@@ -60,10 +67,13 @@ function createInitialAdmin(input = {}) {
   if (!setupRequired()) throw Object.assign(new Error('GCOS_SETUP_ALREADY_COMPLETED'), { status: 409 });
   const name = String(input.name || 'David').trim();
   const username = String(input.username || 'david').trim().toLowerCase();
+  const email = normalizeEmail(input.email);
   const password = String(input.password || '');
-  if (password.length < 10) throw Object.assign(new Error('PASSWORD_TOO_SHORT'), { status: 400 });
+  if (!name || !username) throw Object.assign(new Error('USER_NAME_REQUIRED'), { status: 400 });
+  if (!validEmail(email)) throw Object.assign(new Error('INVALID_EMAIL'), { status: 400 });
+  if (!validPin(password)) throw Object.assign(new Error('PIN_MUST_BE_4_DIGITS'), { status: 400 });
   const now = new Date().toISOString();
-  const user = { id: crypto.randomUUID(), name, username, role: 'admin', active: true, passwordHash: hashPassword(password), createdAt: now, updatedAt: now };
+  const user = { id: crypto.randomUUID(), name, username, email, role: 'admin', active: true, passwordHash: hashPassword(password), createdAt: now, updatedAt: now };
   writeUsers([user]);
   return publicUser(user);
 }
@@ -73,14 +83,17 @@ function createUser(actor, input = {}) {
   const users = readUsers();
   const username = String(input.username || '').trim().toLowerCase();
   const name = String(input.name || '').trim();
+  const email = normalizeEmail(input.email);
   const password = String(input.password || '');
   const role = String(input.role || 'trainee');
   if (!username || !name) throw Object.assign(new Error('USER_NAME_REQUIRED'), { status: 400 });
-  if (password.length < 10) throw Object.assign(new Error('PASSWORD_TOO_SHORT'), { status: 400 });
+  if (!validEmail(email)) throw Object.assign(new Error('INVALID_EMAIL'), { status: 400 });
+  if (!validPin(password)) throw Object.assign(new Error('PIN_MUST_BE_4_DIGITS'), { status: 400 });
   if (!ROLE_PERMISSIONS[role]) throw Object.assign(new Error('INVALID_ROLE'), { status: 400 });
   if (users.some((user) => user.username === username)) throw Object.assign(new Error('USERNAME_ALREADY_EXISTS'), { status: 409 });
+  if (users.some((user) => normalizeEmail(user.email) === email)) throw Object.assign(new Error('EMAIL_ALREADY_EXISTS'), { status: 409 });
   const now = new Date().toISOString();
-  const user = { id: crypto.randomUUID(), name, username, role, active: true, passwordHash: hashPassword(password), createdAt: now, updatedAt: now };
+  const user = { id: crypto.randomUUID(), name, username, email, role, active: true, passwordHash: hashPassword(password), createdAt: now, updatedAt: now };
   users.push(user);
   writeUsers(users);
   return publicUser(user);
@@ -97,6 +110,44 @@ function login(username, password) {
   const token = crypto.randomBytes(32).toString('hex');
   sessions.set(token, { userId: user.id, expiresAt: Date.now() + SESSION_TTL_MS });
   return { token, user: publicUser(user), expiresInSeconds: SESSION_TTL_MS / 1000 };
+}
+
+function recoveryKey(input = {}) {
+  return `${String(input.username || '').trim().toLowerCase()}|${normalizeEmail(input.email)}`;
+}
+
+function enforceRecoveryRateLimit(key) {
+  const now = Date.now();
+  const entry = recoveryAttempts.get(key);
+  if (!entry || now - entry.startedAt > RECOVERY_WINDOW_MS) {
+    recoveryAttempts.set(key, { count: 1, startedAt: now });
+    return;
+  }
+  if (entry.count >= MAX_RECOVERY_ATTEMPTS) throw Object.assign(new Error('RECOVERY_RATE_LIMITED'), { status: 429 });
+  entry.count += 1;
+}
+
+function resetPassword(input = {}) {
+  const username = String(input.username || '').trim().toLowerCase();
+  const name = String(input.name || '').trim().toLowerCase();
+  const email = normalizeEmail(input.email);
+  const password = String(input.password || '');
+  const key = recoveryKey(input);
+  enforceRecoveryRateLimit(key);
+  if (!username || !name) throw Object.assign(new Error('USER_NAME_REQUIRED'), { status: 400 });
+  if (!validEmail(email)) throw Object.assign(new Error('INVALID_EMAIL'), { status: 400 });
+  if (!validPin(password)) throw Object.assign(new Error('PIN_MUST_BE_4_DIGITS'), { status: 400 });
+  const users = readUsers();
+  const index = users.findIndex((item) => item.username === username && String(item.name || '').trim().toLowerCase() === name && item.active !== false);
+  if (index < 0) throw Object.assign(new Error('RECOVERY_IDENTITY_MISMATCH'), { status: 401 });
+  const storedEmail = normalizeEmail(users[index].email);
+  if (storedEmail && storedEmail !== email) throw Object.assign(new Error('RECOVERY_IDENTITY_MISMATCH'), { status: 401 });
+  if (!storedEmail && users.some((item, itemIndex) => itemIndex !== index && normalizeEmail(item.email) === email)) throw Object.assign(new Error('EMAIL_ALREADY_EXISTS'), { status: 409 });
+  users[index] = { ...users[index], email, passwordHash: hashPassword(password), updatedAt: new Date().toISOString(), passwordResetAt: new Date().toISOString() };
+  writeUsers(users);
+  for (const [token, session] of sessions.entries()) if (session.userId === users[index].id) sessions.delete(token);
+  recoveryAttempts.delete(key);
+  return publicUser(users[index]);
 }
 
 function logout(token) { if (token) sessions.delete(token); }
@@ -142,6 +193,7 @@ module.exports = {
   createUser,
   listUsers,
   login,
+  resetPassword,
   logout,
   tokenFromRequest,
   authenticate,
