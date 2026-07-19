@@ -2,8 +2,8 @@
 
 const { URL } = require('node:url');
 
-const BASE_ID = process.env.AIRTABLE_BASE_ID || 'app6i45G4WG2nmQff';
-const TOKEN = process.env.AIRTABLE_TOKEN || '';
+function baseId() { return process.env.AIRTABLE_BASE_ID || 'app6i45G4WG2nmQff'; }
+function token() { return process.env.AIRTABLE_TOKEN || ''; }
 
 const MAP = {
   clients: { table: 'Clients', fields: { name: 'Nom complet', email: 'Email', phone: 'Téléphone', notes: 'Notes client', status: 'Statut client', source: 'Origine du contact', clientType: 'Type de client' } },
@@ -15,15 +15,16 @@ const MAP = {
   documents: { table: 'Centre documentaire', fields: { title: 'Document', category: 'Catégorie', subcategory: 'Sous-catégorie', summary: 'Résumé Jarvis', addedDate: 'Date d’ajout' } }
 };
 
-function configured() { return Boolean(TOKEN); }
+function configured() { return Boolean(token()); }
 
 async function request(table, options = {}) {
-  if (!configured()) throw Object.assign(new Error('AIRTABLE_NOT_CONFIGURED'), { status: 503 });
+  const currentToken = token();
+  if (!currentToken) throw Object.assign(new Error('AIRTABLE_NOT_CONFIGURED'), { status: 503 });
   const suffix = options.recordId ? `/${encodeURIComponent(options.recordId)}` : '';
-  const url = new URL(`https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(table)}${suffix}`);
+  const url = new URL(`https://api.airtable.com/v0/${baseId()}/${encodeURIComponent(table)}${suffix}`);
   const response = await fetch(url, {
     method: options.method || 'GET',
-    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${currentToken}`, 'Content-Type': 'application/json' },
     body: options.body ? JSON.stringify(options.body) : undefined
   });
   const payload = await response.json().catch(() => ({}));
@@ -83,6 +84,6 @@ async function pushAll(store, collections = Object.keys(MAP)) {
   return { configured: configured(), total: results.length, succeeded: results.filter((item) => item.ok).length, failed: results.filter((item) => !item.ok).length, results };
 }
 
-function status() { return { configured: configured(), baseId: BASE_ID, supportedCollections: Object.keys(MAP) }; }
+function status() { return { configured: configured(), baseId: baseId(), supportedCollections: Object.keys(MAP) }; }
 
 module.exports = { MAP, configured, status, push, pushAll };
