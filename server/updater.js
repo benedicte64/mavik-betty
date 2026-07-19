@@ -169,6 +169,16 @@ function restartServer() {
   child.unref();
   setTimeout(() => process.exit(0), 400).unref();
 }
+function validateInstalledFiles() {
+  const scripts = ['server.js', 'auth.js', 'jarvis.js', 'airtable-sync.js', 'updater.js', 'diagnostics.js', 'design-installer.js', 'restart-helper.js'];
+  for (const file of scripts) execFileSync(process.execPath, ['--check', path.join(__dirname, file)], { cwd: __dirname, windowsHide: true, stdio: 'pipe', timeout: 15000 });
+  const required = [
+    path.join(__dirname, 'public', 'alpha.template.html'),
+    path.join(__dirname, 'public', 'login.template.html'),
+    path.join(__dirname, 'assets', 'logo', '01.txt')
+  ];
+  for (const file of required) if (!fs.existsSync(file)) throw new Error(`UPDATE_FILE_MISSING: ${path.relative(ROOT_DIR, file)}`);
+}
 async function installGitUpdate(latest) {
   if (automaticUpdateRunning) return state();
   automaticUpdateRunning = true;
@@ -183,9 +193,7 @@ async function installGitUpdate(latest) {
       return saveState({ updateAvailable: false, currentCommit: before, lastError: null });
     }
     runGit(['reset', '--hard', target], { timeout: 60000 });
-    for (const file of ['server.js', 'jarvis.js', 'updater.js', 'diagnostics.js', 'restart-helper.js']) {
-      execFileSync(process.execPath, ['--check', path.join(__dirname, file)], { cwd: __dirname, windowsHide: true, stdio: 'pipe', timeout: 15000 });
-    }
+    validateInstalledFiles();
     saveState({ updateAvailable: false, pendingRestart: false, installedCommit: target, installedAt: new Date().toISOString(), lastError: null });
     restartServer();
     return state();
