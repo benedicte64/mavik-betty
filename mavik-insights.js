@@ -4,12 +4,15 @@
   const QUEUE_KEY = 'mavik.insights.queue.v1';
   const CONFIG_KEY = 'mavik.insights.config.v1';
   const INSTALLATION_KEY = 'mavik.insights.installation.v1';
+  const LAST_SYNC_KEY = 'mavik.insights.lastSync.v1';
   const MAX_QUEUE = 1000;
+  const ENDPOINT = '/api/insights/events';
 
   const defaults = {
     enabled: true,
     productImprovement: false,
-    sectorIntelligence: false
+    sectorIntelligence: false,
+    automaticSync: true
   };
 
   const blocked = [
@@ -42,9 +45,11 @@
     const updated = {
       enabled: next.enabled ?? current.enabled,
       productImprovement: Boolean(next.productImprovement ?? current.productImprovement),
-      sectorIntelligence: Boolean(next.sectorIntelligence ?? current.sectorIntelligence)
+      sectorIntelligence: Boolean(next.sectorIntelligence ?? current.sectorIntelligence),
+      automaticSync: Boolean(next.automaticSync ?? current.automaticSync)
     };
     write(CONFIG_KEY, updated);
+    if (updated.enabled && updated.automaticSync) queueMicrotask(() => flush().catch(() => {}));
     return updated;
   }
 
@@ -71,7 +76,7 @@
       }
       return output;
     }
-    return String(value);
+    return String(value).slice(0, 250);
   }
 
   function allowed(level, config) {
@@ -99,6 +104,7 @@
     };
     events.push(event);
     write(QUEUE_KEY, events.slice(-MAX_QUEUE));
+    if (config.automaticSync && navigator.onLine) queueMicrotask(() => flush().catch(() => {}));
     return event.id;
   }
 
@@ -113,17 +119,47 @@
     return remaining.length;
   }
 
+  async function flush(limit = 100) {
+    const config = configuration();
+    if (!config.enabled || !config.automaticSync || !navigator.onLine) return { sent: 0, pending: read(QUEUE_KEY, []).length };
+    const events = exportBatch(limit);
+    if (!events.length) return { sent: 0, pending: 0 };
+    const response = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ events })
+    });
+    if (!response.ok) throw new Error(`INSIGHTS_SYNC_${response.status}`);
+    const result = await response.json();
+    const accepted = Array.isArray(result.accepted) ? result.accepted : [];
+    acknowledge(accepted);
+    write(LAST_SYNC_KEY, { at: new Date().toISOString(), accepted: accepted.length, rejected: result.rejected?.length || 0 });
+    return { sent: accepted.length, rejected: result.rejected || [], pending: read(QUEUE_KEY, []).length };
+  }
+
   function status() {
     const config = configuration();
-    return { ...config, pending: read(QUEUE_KEY, []).length };
+    return { ...config, pending: read(QUEUE_KEY, []).length, lastSync: read(LAST_SYNC_KEY, null) };
   }
+
+  window.addEventListener('online', () => flush().catch(() => {}));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flush().catch(() => {});
+  });
+  setInterval(() => flush().catch(() => {}), 60_000);
 
   window.MavikInsights = Object.freeze({
     configure,
     track,
     exportBatch,
     acknowledge,
+    flush,
     status,
     sanitize
+  });
+
+  queueMicrotask(() => {
+    track('application_session', { path: location.pathname, online: navigator.onLine }, 'essential');
+    flush().catch(() => {});
   });
 })();
