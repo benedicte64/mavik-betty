@@ -8,7 +8,12 @@ const ALPHA_TEMPLATE = path.join(__dirname, 'public', 'alpha.template.html');
 const ALPHA_TARGET = path.join(__dirname, 'public', 'alpha.html');
 const LOGIN_TEMPLATE = path.join(__dirname, 'public', 'login.template.html');
 const LOGIN_TARGET = path.join(__dirname, 'public', 'login.html');
+const PROFILE_TEMPLATE = path.join(__dirname, 'public', 'profile.template.html');
+const PROFILE_TARGET = path.join(__dirname, 'public', 'profile.html');
+const JARVIS_TEMPLATE = path.join(__dirname, 'public', 'jarvis.template.html');
+const JARVIS_TARGET = path.join(__dirname, 'public', 'jarvis.html');
 const PARTS = path.join(__dirname, 'assets', 'logo');
+const DESIGN_VERSION = 'gentlecare-pc-validated-v1';
 let announced = false;
 
 function iphoneUrls(port = Number(process.env.GCOS_PORT || 4782)) {
@@ -43,9 +48,9 @@ function logoData() {
 }
 
 function writeGenerated(templatePath, targetPath, logo, replacements = []) {
-  let output = fs.readFileSync(templatePath, 'utf8').replaceAll('__OFFICIAL_LOGO__', logo);
+  let output = fs.readFileSync(templatePath, 'utf8').replaceAll('__OFFICIAL_LOGO__', logo).replaceAll('__DESIGN_VERSION__', DESIGN_VERSION);
   for (const [before, after] of replacements) output = output.replaceAll(before, after);
-  output = output.replace('</head>', `<meta name="mavik-generated" content="${Date.now()}"></head>`);
+  output = output.replace('</head>', `<meta name="mavik-design-lock" content="${DESIGN_VERSION}"><meta name="mavik-generated" content="${Date.now()}"></head>`);
   const temp = `${targetPath}.tmp`;
   fs.writeFileSync(temp, output, 'utf8');
   fs.renameSync(temp, targetPath);
@@ -60,13 +65,18 @@ function install() {
     ['Le lien exact s’affiche dans la fenêtre DEMARRER-MAVIK.cmd.', iphoneLink]
   ]);
   const loginSize = writeGenerated(LOGIN_TEMPLATE, LOGIN_TARGET, logo);
+  const profileSize = writeGenerated(PROFILE_TEMPLATE, PROFILE_TARGET, logo);
+  const jarvisSize = writeGenerated(JARVIS_TEMPLATE, JARVIS_TARGET, logo);
   announce();
   return {
     ok: true,
+    designVersion: DESIGN_VERSION,
     parts: files.length,
-    size: alphaSize + loginSize,
+    size: alphaSize + loginSize + profileSize + jarvisSize,
     target: ALPHA_TARGET,
     loginTarget: LOGIN_TARGET,
+    profileTarget: PROFILE_TARGET,
+    jarvisTarget: JARVIS_TARGET,
     iphoneUrls: urls
   };
 }
@@ -75,9 +85,14 @@ module.exports = {
   install,
   iphoneUrls,
   announce,
+  DESIGN_VERSION,
   ALPHA_TEMPLATE,
   ALPHA_TARGET,
   LOGIN_TEMPLATE,
   LOGIN_TARGET,
+  PROFILE_TEMPLATE,
+  PROFILE_TARGET,
+  JARVIS_TEMPLATE,
+  JARVIS_TARGET,
   PARTS
 };
