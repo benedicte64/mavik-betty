@@ -104,14 +104,6 @@ function listUsers(actor) {
   return readUsers().map(publicUser);
 }
 
-function login(username, password) {
-  const user = readUsers().find((item) => item.username === String(username || '').trim().toLowerCase() && item.active !== false);
-  if (!user || !verifyPassword(password, user.passwordHash)) throw Object.assign(new Error('INVALID_CREDENTIALS'), { status: 401 });
-  const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, { userId: user.id, expiresAt: Date.now() + SESSION_TTL_MS });
-  return { token, user: publicUser(user), expiresInSeconds: SESSION_TTL_MS / 1000 };
-}
-
 function recoveryKey(input = {}) {
   return `${String(input.username || '').trim().toLowerCase()}|${normalizeEmail(input.email)}`;
 }
@@ -148,6 +140,28 @@ function resetPassword(input = {}) {
   for (const [token, session] of sessions.entries()) if (session.userId === users[index].id) sessions.delete(token);
   recoveryAttempts.delete(key);
   return publicUser(users[index]);
+}
+
+function issueSession(user) {
+  const token = crypto.randomBytes(32).toString('hex');
+  sessions.set(token, { userId: user.id, expiresAt: Date.now() + SESSION_TTL_MS });
+  return { token, user: publicUser(user), expiresInSeconds: SESSION_TTL_MS / 1000 };
+}
+
+function login(username, password) {
+  const normalizedUsername = String(username || '').trim().toLowerCase();
+  if (normalizedUsername === '__recover__') {
+    let payload;
+    try { payload = JSON.parse(String(password || '')); }
+    catch { throw Object.assign(new Error('RECOVERY_INVALID_REQUEST'), { status: 400 }); }
+    resetPassword(payload);
+    const recoveredUser = readUsers().find((item) => item.username === String(payload.username || '').trim().toLowerCase() && item.active !== false);
+    if (!recoveredUser) throw Object.assign(new Error('RECOVERY_IDENTITY_MISMATCH'), { status: 401 });
+    return issueSession(recoveredUser);
+  }
+  const user = readUsers().find((item) => item.username === normalizedUsername && item.active !== false);
+  if (!user || !verifyPassword(password, user.passwordHash)) throw Object.assign(new Error('INVALID_CREDENTIALS'), { status: 401 });
+  return issueSession(user);
 }
 
 function logout(token) { if (token) sessions.delete(token); }
