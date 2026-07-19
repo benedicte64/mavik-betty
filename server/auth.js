@@ -121,16 +121,15 @@ function enforceRecoveryRateLimit(key) {
 
 function resetPassword(input = {}) {
   const username = String(input.username || '').trim().toLowerCase();
-  const name = String(input.name || '').trim().toLowerCase();
   const email = normalizeEmail(input.email);
   const password = String(input.password || '');
   const key = recoveryKey(input);
   enforceRecoveryRateLimit(key);
-  if (!username || !name) throw Object.assign(new Error('USER_NAME_REQUIRED'), { status: 400 });
+  if (!username) throw Object.assign(new Error('USERNAME_REQUIRED'), { status: 400 });
   if (!validEmail(email)) throw Object.assign(new Error('INVALID_EMAIL'), { status: 400 });
   if (!validPin(password)) throw Object.assign(new Error('PIN_MUST_BE_4_DIGITS'), { status: 400 });
   const users = readUsers();
-  const index = users.findIndex((item) => item.username === username && String(item.name || '').trim().toLowerCase() === name && item.active !== false);
+  const index = users.findIndex((item) => item.username === username && item.active !== false);
   if (index < 0) throw Object.assign(new Error('RECOVERY_IDENTITY_MISMATCH'), { status: 401 });
   const storedEmail = normalizeEmail(users[index].email);
   if (storedEmail && storedEmail !== email) throw Object.assign(new Error('RECOVERY_IDENTITY_MISMATCH'), { status: 401 });
@@ -169,7 +168,14 @@ function logout(token) { if (token) sessions.delete(token); }
 function tokenFromRequest(req) {
   const authorization = String(req.headers.authorization || '');
   if (authorization.startsWith('Bearer ')) return authorization.slice(7).trim();
-  return String(req.headers['x-gcos-session'] || '').trim();
+  const headerToken = String(req.headers['x-gcos-session'] || '').trim();
+  if (headerToken) return headerToken;
+  try {
+    const url = new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`);
+    return String(url.searchParams.get('session') || '').trim();
+  } catch {
+    return '';
+  }
 }
 
 function authenticate(req) {
