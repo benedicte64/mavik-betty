@@ -38,12 +38,16 @@ function install() {
   if (!files.length) throw new Error('OFFICIAL_LOGO_PARTS_MISSING');
   const logo = files.map((name) => fs.readFileSync(path.join(PARTS, name), 'utf8').trim()).join('');
   if (!logo.startsWith('iVBOR')) throw new Error('OFFICIAL_LOGO_INVALID');
-  const output = template.replaceAll('__OFFICIAL_LOGO__', logo);
+  const urls = iphoneUrls();
+  const iphoneLink = urls[0] || 'Adresse réseau non détectée : vérifiez le Wi-Fi du PC puis relancez MAVIK.';
+  const output = template
+    .replaceAll('__OFFICIAL_LOGO__', logo)
+    .replace('Le lien exact s’affiche dans la fenêtre DEMARRER-MAVIK.cmd.', iphoneLink);
   const temp = `${TARGET}.tmp`;
   fs.writeFileSync(temp, output, 'utf8');
   fs.renameSync(temp, TARGET);
   announce();
-  return { ok: true, parts: files.length, size: output.length, target: TARGET, iphoneUrls: iphoneUrls() };
+  return { ok: true, parts: files.length, size: output.length, target: TARGET, iphoneUrls: urls };
 }
 
 module.exports = { install, iphoneUrls, announce, TEMPLATE, TARGET, PARTS };
