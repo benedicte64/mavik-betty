@@ -6,17 +6,17 @@ cd /d "%~dp0"
 echo =====================================================
 echo       REPARATION MAVIK GCOS
 echo =====================================================
-echo 1/4 - Verification de Git...
+echo 1/5 - Verification de Git...
 git --version >nul 2>&1
 if errorlevel 1 goto GIT_ERROR
 
-echo 2/4 - Recuperation de la derniere version...
+echo 2/5 - Recuperation de la derniere version...
 git fetch origin main
 if errorlevel 1 goto NETWORK_ERROR
 git pull --ff-only origin main
 if errorlevel 1 goto PULL_ERROR
 
-echo 3/4 - Verification des fichiers principaux...
+echo 3/5 - Verification des fichiers principaux...
 node --check server\server.js
 if errorlevel 1 goto CODE_ERROR
 node --check server\jarvis.js
@@ -25,8 +25,14 @@ node --check server\updater.js
 if errorlevel 1 goto CODE_ERROR
 node --check server\diagnostics.js
 if errorlevel 1 goto CODE_ERROR
+node --check server\design-installer.js
+if errorlevel 1 goto CODE_ERROR
 
-echo 4/4 - Reparation terminee.
+echo 4/5 - Reinstallation du design et du logo officiel...
+node -e "require('./server/design-installer').install()"
+if errorlevel 1 goto DESIGN_ERROR
+
+echo 5/5 - Reparation terminee.
 echo MAVIK va maintenant redemarrer.
 timeout /t 2 /nobreak >nul
 call "%~dp0DEMARRER-MAVIK.cmd"
@@ -54,6 +60,12 @@ goto PAUSE_END
 echo.
 echo ERREUR : un fichier MAVIK est incomplet.
 echo Relancez ce fichier lorsque la connexion Internet est stable.
+goto PAUSE_END
+
+:DESIGN_ERROR
+echo.
+echo ERREUR : le logo ou le design GentleCarE ne peut pas etre reinstalle.
+echo Relancez REPARER-MAVIK.cmd. Si le probleme persiste, conservez ce message pour la hotline MAVIK.
 goto PAUSE_END
 
 :PAUSE_END
