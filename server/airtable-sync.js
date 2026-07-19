@@ -15,6 +15,8 @@ const MAP = {
   documents: { table: 'Centre documentaire', fields: { title: 'Document', category: 'Catégorie', subcategory: 'Sous-catégorie', summary: 'Résumé Jarvis', addedDate: 'Date d’ajout' } }
 };
 
+let lastHealth = { checkedAt: null, ok: null, detail: 'Connexion non testée', latencyMs: null };
+
 function configured() { return Boolean(token()); }
 
 async function request(table, options = {}) {
@@ -22,14 +24,52 @@ async function request(table, options = {}) {
   if (!currentToken) throw Object.assign(new Error('AIRTABLE_NOT_CONFIGURED'), { status: 503 });
   const suffix = options.recordId ? `/${encodeURIComponent(options.recordId)}` : '';
   const url = new URL(`https://api.airtable.com/v0/${baseId()}/${encodeURIComponent(table)}${suffix}`);
-  const response = await fetch(url, {
-    method: options.method || 'GET',
-    headers: { Authorization: `Bearer ${currentToken}`, 'Content-Type': 'application/json' },
-    body: options.body ? JSON.stringify(options.body) : undefined
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw Object.assign(new Error(payload?.error?.message || `AIRTABLE_${response.status}`), { status: response.status });
-  return payload;
+  for (const [key, value] of Object.entries(options.query || {})) {
+    if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), Number(options.timeoutMs || 12000));
+  try {
+    const response = await fetch(url, {
+      method: options.method || 'GET',
+      headers: { Authorization: `Bearer ${currentToken}`, 'Content-Type': 'application/json' },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw Object.assign(new Error(payload?.error?.message || `AIRTABLE_${response.status}`), { status: response.status });
+    return payload;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function testConnection() {
+  const checkedAt = new Date().toISOString();
+  if (!configured()) {
+    lastHealth = { checkedAt, ok: false, detail: 'AIRTABLE_TOKEN absent', latencyMs: null };
+    return lastHealth;
+  }
+  const started = Date.now();
+  try {
+    const payload = await request(MAP.clients.table, { query: { maxRecords: 1 }, timeoutMs: 10000 });
+    lastHealth = {
+      checkedAt,
+      ok: true,
+      detail: `Base ${baseId()} accessible · table ${MAP.clients.table}`,
+      latencyMs: Date.now() - started,
+      sampleRecords: Array.isArray(payload.records) ? payload.records.length : 0
+    };
+  } catch (error) {
+    lastHealth = {
+      checkedAt,
+      ok: false,
+      detail: String(error.message || error),
+      latencyMs: Date.now() - started,
+      status: error.status || null
+    };
+  }
+  return lastHealth;
 }
 
 function findLinkedAirtableId(store, localId) {
@@ -84,6 +124,13 @@ async function pushAll(store, collections = Object.keys(MAP)) {
   return { configured: configured(), total: results.length, succeeded: results.filter((item) => item.ok).length, failed: results.filter((item) => !item.ok).length, results };
 }
 
-function status() { return { configured: configured(), baseId: baseId(), supportedCollections: Object.keys(MAP) }; }
+function status() {
+  return {
+    configured: configured(),
+    baseId: baseId(),
+    supportedCollections: Object.keys(MAP),
+    health: lastHealth
+  };
+}
 
-module.exports = { MAP, configured, status, push, pushAll };
+module.exports = { MAP, configured, status, request, testConnection, push, pushAll };
