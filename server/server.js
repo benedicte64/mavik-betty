@@ -11,6 +11,7 @@ const auth = require('./auth');
 const updater = require('./updater');
 const airtableSync = require('./airtable-sync');
 const insightsStore = require('./insights-store');
+const diagnostics = require('./diagnostics');
 
 function loadEnv(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -36,6 +37,7 @@ const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || '';
 const ALLOWED_ORIGIN = process.env.GCOS_ALLOWED_ORIGIN || '*';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const LOCAL_COLLECTIONS = new Set(['clients', 'vehicles', 'interventions', 'observations', 'communications', 'tasks', 'stockItems', 'quotes', 'documents', 'photos']);
+const diagnosticDependencies = { localStore, airtableSync, updater, backup };
 
 function commonHeaders(contentType) {
   return {
@@ -77,18 +79,25 @@ async function airtableRequest(table, options = {}) {
   const recordSuffix = options.recordId ? `/${encodeURIComponent(options.recordId)}` : '';
   const url = new URL(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(table)}${recordSuffix}`);
   Object.entries(options.query || {}).forEach(([key, value]) => { if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value)); });
-  const response = await fetch(url, {
-    method: options.method || 'GET',
-    headers: { Authorization: `Bearer ${AIRTABLE_TOKEN}`, 'Content-Type': 'application/json' },
-    body: options.body ? JSON.stringify(options.body) : undefined
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(payload?.error?.message || `AIRTABLE_${response.status}`);
-    error.status = response.status;
-    throw error;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const response = await fetch(url, {
+      method: options.method || 'GET',
+      headers: { Authorization: `Bearer ${AIRTABLE_TOKEN}`, 'Content-Type': 'application/json' },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(payload?.error?.message || `AIRTABLE_${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+    return payload;
+  } finally {
+    clearTimeout(timer);
   }
-  return payload;
 }
 
 const AUTH_BOOTSTRAP = `<script>(function(){const token=localStorage.getItem('gcos_session');if(!token){location.replace('/login');return;}const original=window.fetch;window.fetch=function(input,init){init=init||{};const headers=new Headers(init.headers||{});headers.set('Authorization','Bearer '+token);return original(input,{...init,headers}).then(function(r){if(r.status===401){localStorage.removeItem('gcos_session');location.replace('/login');}return r;});};})();</script>`;
@@ -112,7 +121,20 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || `${HOST}:${PORT}`}`);
   try {
     if (req.method === 'GET' && url.pathname === '/login') return servePage(res, 'login.html', 'Connexion introuvable');
-    if (req.method === 'GET' && url.pathname === '/health') return json(res, 200, { service: 'Jarvis OS', version: updater.currentVersion(), multiUser: true, setupRequired: auth.setupRequired(), airtableConfigured: Boolean(AIRTABLE_TOKEN), airtableSync: airtableSync.status(), insights: insightsStore.status(), updater: updater.state(), host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString() });
+    if (req.method === 'GET' && url.pathname === '/health') return json(res, 200, {
+      service: 'MAVIK GCOS',
+      version: updater.currentVersion(),
+      multiUser: true,
+      setupRequired: auth.setupRequired(),
+      airtableConfigured: Boolean(AIRTABLE_TOKEN),
+      airtableSync: airtableSync.status(),
+      insights: insightsStore.status(),
+      updater: updater.state(),
+      diagnostics: diagnostics.readLastReport(),
+      host: HOST,
+      uptimeSeconds: Math.round(process.uptime()),
+      time: new Date().toISOString()
+    });
     if (req.method === 'GET' && url.pathname === '/api/auth/status') return json(res, 200, { setupRequired: auth.setupRequired(), user: auth.authenticate(req) });
     if (req.method === 'POST' && url.pathname === '/api/auth/setup') return json(res, 201, { user: auth.createInitialAdmin(await readBody(req)) });
     if (req.method === 'POST' && url.pathname === '/api/auth/login') { const body = await readBody(req); return json(res, 200, auth.login(body.username, body.password)); }
@@ -121,11 +143,23 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha' || url.pathname === '/jarvis') && !auth.authenticate(req)) return redirect(res, '/login');
     const user = requireUser(req);
 
-    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha')) return servePage(res, 'alpha.html', 'Jarvis OS introuvable', true);
+    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha')) return servePage(res, 'alpha.html', 'MAVIK GCOS introuvable', true);
     if (req.method === 'GET' && url.pathname === '/jarvis') { auth.requirePermission(user, 'jarvis.use'); return servePage(res, 'jarvis.html', 'Jarvis introuvable', true); }
     if (req.method === 'GET' && url.pathname === '/api/auth/me') return json(res, 200, { user });
     if (req.method === 'GET' && url.pathname === '/api/users') return json(res, 200, { users: auth.listUsers(user), roles: auth.ROLE_PERMISSIONS });
     if (req.method === 'POST' && url.pathname === '/api/users') return json(res, 201, { user: auth.createUser(user, await readBody(req)) });
+
+    if (req.method === 'GET' && url.pathname === '/api/system/diagnostics') {
+      auth.requirePermission(user, 'dashboard.read');
+      return json(res, 200, diagnostics.readLastReport() || await diagnostics.run(diagnosticDependencies));
+    }
+    if (req.method === 'POST' && url.pathname === '/api/system/diagnostics/repair') {
+      auth.requirePermission(user, 'users.manage');
+      const report = await diagnostics.run(diagnosticDependencies, { repair: true });
+      json(res, 200, report);
+      setTimeout(() => updater.automaticCycle().catch((error) => diagnostics.recordCrash(error, 'AUTO_UPDATE_TEST')), 1200).unref();
+      return;
+    }
 
     if (req.method === 'GET' && url.pathname === '/api/system/update') { auth.requirePermission(user, 'users.manage'); return json(res, 200, updater.state()); }
     if (req.method === 'POST' && url.pathname === '/api/system/update/check') { auth.requirePermission(user, 'users.manage'); return json(res, 200, await updater.check()); }
@@ -141,6 +175,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/sync/status') { auth.requirePermission(user, 'dashboard.read'); return json(res, 200, airtableSync.status()); }
+    if (req.method === 'POST' && url.pathname === '/api/sync/test') { auth.requirePermission(user, 'dashboard.read'); return json(res, 200, await airtableSync.testConnection()); }
     if (req.method === 'POST' && url.pathname === '/api/sync/push-all') {
       auth.requirePermission(user, 'users.manage');
       const body = await readBody(req);
@@ -200,6 +235,7 @@ const server = http.createServer(async (req, res) => {
 
     return json(res, 404, { error: 'GCOS_ROUTE_NOT_FOUND' });
   } catch (error) {
+    diagnostics.recordCrash(error, 'REQUEST');
     console.error('[GCOS]', error);
     return json(res, error.status || 500, { error: error.message || 'GCOS_INTERNAL_ERROR' });
   }
@@ -207,20 +243,35 @@ const server = http.createServer(async (req, res) => {
 
 backup.startAutomaticBackups();
 updater.startAutomaticChecks();
+diagnostics.startAutomaticChecks(diagnosticDependencies);
 server.listen(PORT, HOST, () => {
-  console.log(`Jarvis OS ${updater.currentVersion()} started on http://${HOST}:${PORT}`);
+  console.log(`MAVIK GCOS ${updater.currentVersion()} started on http://${HOST}:${PORT}`);
   console.log('Multi-user authentication: enabled');
   console.log(`Airtable synchronization: ${airtableSync.configured() ? 'enabled' : 'disabled'}`);
   console.log(`Mavik Insights: enabled (${insightsStore.status().storedEvents} local events)`);
   console.log(`Automatic updates: ${updater.state().enabled ? 'enabled' : 'disabled'}`);
+  console.log('Automatic diagnostics: enabled');
   console.log(`Initial setup required: ${auth.setupRequired() ? 'yes' : 'no'}`);
 });
 
-function shutdown(signal) {
-  console.log(`\n${signal} received. Stopping Jarvis OS...`);
-  server.close(() => process.exit(0));
-  setTimeout(() => process.exit(1), 5000).unref();
+let stopping = false;
+function shutdown(signal, exitCode = 0) {
+  if (stopping) return;
+  stopping = true;
+  console.log(`\n${signal} received. Stopping MAVIK GCOS...`);
+  server.close(() => process.exit(exitCode));
+  setTimeout(() => process.exit(exitCode || 1), 5000).unref();
 }
 
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT', 0));
+process.on('SIGTERM', () => shutdown('SIGTERM', 0));
+process.on('uncaughtException', (error) => {
+  diagnostics.recordCrash(error, 'UNCAUGHT_EXCEPTION');
+  console.error('[MAVIK CRASH]', error);
+  shutdown('UNCAUGHT_EXCEPTION', 1);
+});
+process.on('unhandledRejection', (error) => {
+  diagnostics.recordCrash(error, 'UNHANDLED_REJECTION');
+  console.error('[MAVIK REJECTION]', error);
+  shutdown('UNHANDLED_REJECTION', 1);
+});
