@@ -25,8 +25,11 @@ function gitProbe() { return { version: execFileSync('git', ['--version'], { cwd
 function installDesign() {
   const result = designInstaller.install();
   const alpha = fs.readFileSync(result.target, 'utf8');
-  if (!alpha.includes('gce-official-logo') || !alpha.includes('data:image/png;base64,')) throw new Error('OFFICIAL_DESIGN_NOT_INSTALLED');
-  return result;
+  const login = fs.readFileSync(result.loginTarget, 'utf8');
+  const alphaOk = alpha.includes('gce-official-logo') && alpha.includes('data:image/png;base64,') && !alpha.includes('__OFFICIAL_LOGO__');
+  const loginOk = login.includes('GentleCarE') && login.includes('data:image/png;base64,') && !login.includes('__OFFICIAL_LOGO__');
+  if (!alphaOk || !loginOk) throw new Error('OFFICIAL_DESIGN_NOT_INSTALLED');
+  return { ...result, alphaOk, loginOk };
 }
 
 try { installDesign(); } catch (error) { console.error('[MAVIK DESIGN]', safeMessage(error)); }
@@ -58,12 +61,11 @@ async function run(dependencies, options = {}) {
     }
 
     try {
-      if (repair) { const installed = installDesign(); repairs.push(`Design GentleCarE réinstallé (${installed.parts} parties du logo vérifiées)`); }
-      const alpha = fs.readFileSync(path.join(PUBLIC_DIR, 'alpha.html'), 'utf8');
-      const official = alpha.includes('gce-official-logo') && alpha.includes('data:image/png;base64,') && !alpha.includes('__OFFICIAL_LOGO__');
-      checks.push(item('interface', 'Interface et logo GentleCarE', official ? 'ok' : 'error', official ? 'Logo officiel et interface premium chargés' : 'Le logo officiel n’est pas correctement installé', { critical: true, repairable: true, humanAction: 'Double-cliquez sur C:\\Mavik-GCOS\\REPARER-MAVIK.cmd.' }));
+      const installed = installDesign();
+      if (repair) repairs.push(`Design GentleCarE PC et iPhone réinstallé (${installed.parts} parties du logo vérifiées)`);
+      checks.push(item('interface', 'Interface PC et iPhone', 'ok', 'Logo officiel, connexion mobile et tableau de bord responsive chargés'));
     } catch (error) {
-      checks.push(item('interface', 'Interface et logo GentleCarE', 'error', safeMessage(error), { critical: true, repairable: true, humanAction: 'Double-cliquez sur C:\\Mavik-GCOS\\REPARER-MAVIK.cmd.' }));
+      checks.push(item('interface', 'Interface PC et iPhone', 'error', safeMessage(error), { critical: true, repairable: true, humanAction: 'Double-cliquez sur C:\\Mavik-GCOS\\REPARER-MAVIK.cmd puis rouvrez le lien /iphone dans Safari.' }));
     }
 
     try {
