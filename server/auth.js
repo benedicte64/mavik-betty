@@ -41,6 +41,13 @@ function writeUsers(users) {
 function normalizeEmail(email) { return String(email || '').trim().toLowerCase(); }
 function validEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email)); }
 function validPin(pin) { return /^\d{4}$/.test(String(pin || '')); }
+function normalizeDevice(value) {
+  const input = String(value || '').toLowerCase();
+  return /(iphone|ipad|ipod|ios|mobile-safari)/.test(input) ? 'iphone' : 'pc';
+}
+function deviceFromRequest(req) {
+  return normalizeDevice(req?.headers?.['x-gcos-client'] || req?.headers?.['user-agent'] || 'pc');
+}
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
   const hash = crypto.scryptSync(String(password), salt, 64).toString('hex');
@@ -55,27 +62,46 @@ function verifyPassword(password, stored) {
   return expectedBuffer.length === actual.length && crypto.timingSafeEqual(expectedBuffer, actual);
 }
 
-function publicUser(user) {
+function deviceHashes(user) {
+  return user && typeof user.devicePinHashes === 'object' && user.devicePinHashes ? user.devicePinHashes : {};
+}
+
+function publicUser(user, currentDevice = '') {
   if (!user) return null;
-  const { passwordHash, ...safe } = user;
-  return safe;
+  const { passwordHash, devicePinHashes, ...safe } = user;
+  const hashes = deviceHashes(user);
+  return {
+    ...safe,
+    currentDevice: currentDevice || undefined,
+    deviceAccess: {
+      pc: Boolean(hashes.pc),
+      iphone: Boolean(hashes.iphone)
+    }
+  };
 }
 
 function setupRequired() { return readUsers().length === 0; }
 
-function createInitialAdmin(input = {}) {
+function createInitialAdmin(input = {}, context = {}) {
   if (!setupRequired()) throw Object.assign(new Error('GCOS_SETUP_ALREADY_COMPLETED'), { status: 409 });
   const name = String(input.name || 'David').trim();
   const username = String(input.username || 'david').trim().toLowerCase();
   const email = normalizeEmail(input.email);
   const password = String(input.password || '');
+  const device = normalizeDevice(input.device || context.device);
   if (!name || !username) throw Object.assign(new Error('USER_NAME_REQUIRED'), { status: 400 });
   if (!validEmail(email)) throw Object.assign(new Error('INVALID_EMAIL'), { status: 400 });
   if (!validPin(password)) throw Object.assign(new Error('PIN_MUST_BE_4_DIGITS'), { status: 400 });
   const now = new Date().toISOString();
-  const user = { id: crypto.randomUUID(), name, username, email, role: 'admin', active: true, passwordHash: hashPassword(password), createdAt: now, updatedAt: now };
+  const hash = hashPassword(password);
+  const user = {
+    id: crypto.randomUUID(), name, username, email, role: 'admin', active: true,
+    passwordHash: hash,
+    devicePinHashes: { [device]: hash },
+    createdAt: now, updatedAt: now
+  };
   writeUsers([user]);
-  return publicUser(user);
+  return publicUser(user, device);
 }
 
 function createUser(actor, input = {}) {
@@ -86,6 +112,7 @@ function createUser(actor, input = {}) {
   const email = normalizeEmail(input.email);
   const password = String(input.password || '');
   const role = String(input.role || 'trainee');
+  const device = normalizeDevice(input.device || 'pc');
   if (!username || !name) throw Object.assign(new Error('USER_NAME_REQUIRED'), { status: 400 });
   if (!validEmail(email)) throw Object.assign(new Error('INVALID_EMAIL'), { status: 400 });
   if (!validPin(password)) throw Object.assign(new Error('PIN_MUST_BE_4_DIGITS'), { status: 400 });
@@ -93,19 +120,25 @@ function createUser(actor, input = {}) {
   if (users.some((user) => user.username === username)) throw Object.assign(new Error('USERNAME_ALREADY_EXISTS'), { status: 409 });
   if (users.some((user) => normalizeEmail(user.email) === email)) throw Object.assign(new Error('EMAIL_ALREADY_EXISTS'), { status: 409 });
   const now = new Date().toISOString();
-  const user = { id: crypto.randomUUID(), name, username, email, role, active: true, passwordHash: hashPassword(password), createdAt: now, updatedAt: now };
+  const hash = hashPassword(password);
+  const user = {
+    id: crypto.randomUUID(), name, username, email, role, active: true,
+    passwordHash: hash,
+    devicePinHashes: { [device]: hash },
+    createdAt: now, updatedAt: now
+  };
   users.push(user);
   writeUsers(users);
-  return publicUser(user);
+  return publicUser(user, device);
 }
 
 function listUsers(actor) {
   requirePermission(actor, 'users.manage');
-  return readUsers().map(publicUser);
+  return readUsers().map((user) => publicUser(user));
 }
 
 function recoveryKey(input = {}) {
-  return `${String(input.username || '').trim().toLowerCase()}|${normalizeEmail(input.email)}`;
+  return `${String(input.username || '').trim().toLowerCase()}|${normalizeEmail(input.email)}|${normalizeDevice(input.device)}`;
 }
 
 function enforceRecoveryRateLimit(key) {
@@ -119,11 +152,12 @@ function enforceRecoveryRateLimit(key) {
   entry.count += 1;
 }
 
-function resetPassword(input = {}) {
+function resetPassword(input = {}, context = {}) {
   const username = String(input.username || '').trim().toLowerCase();
   const email = normalizeEmail(input.email);
   const password = String(input.password || '');
-  const key = recoveryKey(input);
+  const device = normalizeDevice(input.device || context.device);
+  const key = recoveryKey({ ...input, device });
   enforceRecoveryRateLimit(key);
   if (!username) throw Object.assign(new Error('USERNAME_REQUIRED'), { status: 400 });
   if (!validEmail(email)) throw Object.assign(new Error('INVALID_EMAIL'), { status: 400 });
@@ -134,33 +168,80 @@ function resetPassword(input = {}) {
   const storedEmail = normalizeEmail(users[index].email);
   if (storedEmail && storedEmail !== email) throw Object.assign(new Error('RECOVERY_IDENTITY_MISMATCH'), { status: 401 });
   if (!storedEmail && users.some((item, itemIndex) => itemIndex !== index && normalizeEmail(item.email) === email)) throw Object.assign(new Error('EMAIL_ALREADY_EXISTS'), { status: 409 });
-  users[index] = { ...users[index], email, passwordHash: hashPassword(password), updatedAt: new Date().toISOString(), passwordResetAt: new Date().toISOString() };
+  const hashes = deviceHashes(users[index]);
+  users[index] = {
+    ...users[index],
+    email,
+    devicePinHashes: { ...hashes, [device]: hashPassword(password) },
+    updatedAt: new Date().toISOString(),
+    passwordResetAt: new Date().toISOString(),
+    passwordResetDevice: device
+  };
   writeUsers(users);
-  for (const [token, session] of sessions.entries()) if (session.userId === users[index].id) sessions.delete(token);
+  for (const [token, session] of sessions.entries()) {
+    if (session.userId === users[index].id && session.device === device) sessions.delete(token);
+  }
   recoveryAttempts.delete(key);
-  return publicUser(users[index]);
+  return publicUser(users[index], device);
 }
 
-function issueSession(user) {
+function setCurrentDevicePin(actor, input = {}, device = 'pc') {
+  if (!actor) throw Object.assign(new Error('AUTH_REQUIRED'), { status: 401 });
+  const password = String(input.password || input.pin || '');
+  const normalizedDevice = normalizeDevice(device);
+  if (!validPin(password)) throw Object.assign(new Error('PIN_MUST_BE_4_DIGITS'), { status: 400 });
+  const users = readUsers();
+  const index = users.findIndex((item) => item.id === actor.id && item.active !== false);
+  if (index < 0) throw Object.assign(new Error('AUTH_REQUIRED'), { status: 401 });
+  users[index] = {
+    ...users[index],
+    devicePinHashes: { ...deviceHashes(users[index]), [normalizedDevice]: hashPassword(password) },
+    updatedAt: new Date().toISOString(),
+    devicePinUpdatedAt: new Date().toISOString(),
+    devicePinUpdatedDevice: normalizedDevice
+  };
+  writeUsers(users);
+  return publicUser(users[index], normalizedDevice);
+}
+
+function issueSession(user, device = 'pc') {
+  const normalizedDevice = normalizeDevice(device);
   const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, { userId: user.id, expiresAt: Date.now() + SESSION_TTL_MS });
-  return { token, user: publicUser(user), expiresInSeconds: SESSION_TTL_MS / 1000 };
+  sessions.set(token, { userId: user.id, device: normalizedDevice, expiresAt: Date.now() + SESSION_TTL_MS });
+  return { token, user: publicUser(user, normalizedDevice), device: normalizedDevice, expiresInSeconds: SESSION_TTL_MS / 1000 };
 }
 
-function login(username, password) {
+function login(username, password, context = {}) {
   const normalizedUsername = String(username || '').trim().toLowerCase();
+  const device = normalizeDevice(context.device);
   if (normalizedUsername === '__recover__') {
     let payload;
     try { payload = JSON.parse(String(password || '')); }
     catch { throw Object.assign(new Error('RECOVERY_INVALID_REQUEST'), { status: 400 }); }
-    resetPassword(payload);
+    payload.device = normalizeDevice(payload.device || device);
+    resetPassword(payload, { device: payload.device });
     const recoveredUser = readUsers().find((item) => item.username === String(payload.username || '').trim().toLowerCase() && item.active !== false);
     if (!recoveredUser) throw Object.assign(new Error('RECOVERY_IDENTITY_MISMATCH'), { status: 401 });
-    return issueSession(recoveredUser);
+    return issueSession(recoveredUser, payload.device);
   }
-  const user = readUsers().find((item) => item.username === normalizedUsername && item.active !== false);
-  if (!user || !verifyPassword(password, user.passwordHash)) throw Object.assign(new Error('INVALID_CREDENTIALS'), { status: 401 });
-  return issueSession(user);
+  const users = readUsers();
+  const index = users.findIndex((item) => item.username === normalizedUsername && item.active !== false);
+  if (index < 0) throw Object.assign(new Error('INVALID_CREDENTIALS'), { status: 401 });
+  const user = users[index];
+  const hashes = deviceHashes(user);
+  const deviceHash = hashes[device];
+  let valid = deviceHash ? verifyPassword(password, deviceHash) : verifyPassword(password, user.passwordHash);
+  if (!valid) throw Object.assign(new Error('INVALID_CREDENTIALS'), { status: 401 });
+  if (!deviceHash) {
+    users[index] = {
+      ...user,
+      devicePinHashes: { ...hashes, [device]: hashPassword(password) },
+      updatedAt: new Date().toISOString(),
+      deviceBoundAt: new Date().toISOString()
+    };
+    writeUsers(users);
+  }
+  return issueSession(users[index], device);
 }
 
 function logout(token) { if (token) sessions.delete(token); }
@@ -185,10 +266,12 @@ function authenticate(req) {
     if (token) sessions.delete(token);
     return null;
   }
+  const requestDevice = deviceFromRequest(req);
+  if (session.device && session.device !== requestDevice) return null;
   const user = readUsers().find((item) => item.id === session.userId && item.active !== false);
   if (!user) return null;
   session.expiresAt = Date.now() + SESSION_TTL_MS;
-  return publicUser(user);
+  return publicUser(user, requestDevice);
 }
 
 function can(user, permission) {
@@ -214,9 +297,12 @@ module.exports = {
   listUsers,
   login,
   resetPassword,
+  setCurrentDevicePin,
   logout,
   tokenFromRequest,
   authenticate,
+  deviceFromRequest,
+  normalizeDevice,
   can,
   requirePermission,
   collectionPermission
