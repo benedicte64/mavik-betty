@@ -45,7 +45,10 @@ function commonHeaders(contentType) {
     'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-GCOS-Session, X-GCOS-Client',
     'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
-    'Cache-Control': 'no-store',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+    Pragma: 'no-cache',
+    Expires: '0',
+    Vary: 'User-Agent, X-GCOS-Client',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'SAMEORIGIN',
     'Referrer-Policy': 'no-referrer'
@@ -54,7 +57,7 @@ function commonHeaders(contentType) {
 
 function json(res, status, body) { res.writeHead(status, commonHeaders('application/json; charset=utf-8')); res.end(JSON.stringify(body)); }
 function html(res, status, body) { res.writeHead(status, commonHeaders('text/html; charset=utf-8')); res.end(body); }
-function redirect(res, location) { res.writeHead(302, { Location: location, 'Cache-Control': 'no-store' }); res.end(); }
+function redirect(res, location) { res.writeHead(302, { Location: location, ...commonHeaders('text/plain; charset=utf-8') }); res.end(); }
 
 async function readBody(req) {
   const chunks = [];
@@ -100,7 +103,7 @@ async function airtableRequest(table, options = {}) {
   }
 }
 
-const AUTH_BOOTSTRAP = `<script>(function(){const token=localStorage.getItem('gcos_session');if(!token){location.replace('/login');return;}const original=window.fetch;window.fetch=function(input,init){init=init||{};const headers=new Headers(init.headers||{});headers.set('Authorization','Bearer '+token);return original(input,{...init,headers}).then(function(r){if(r.status===401){localStorage.removeItem('gcos_session');location.replace('/login');}return r;});};})();</script>`;
+const AUTH_BOOTSTRAP = `<script>(function(){const device=/iPhone|iPad|iPod/i.test(navigator.userAgent)?'iphone':'pc';const token=localStorage.getItem('gcos_session');const login=()=>location.replace('/login?next='+encodeURIComponent(location.pathname));if(!token){login();return;}const original=window.fetch;window.fetch=function(input,init){init=init||{};const headers=new Headers(init.headers||{});headers.set('Authorization','Bearer '+token);headers.set('X-GCOS-Client',device);return original(input,{...init,cache:'no-store',headers}).then(function(r){if(r.status===401){localStorage.removeItem('gcos_session');localStorage.removeItem('gcos_device');login();}return r;});};})();</script>`;
 
 function servePage(res, fileName, missingMessage, protect = false) {
   const filePath = path.join(PUBLIC_DIR, fileName);
@@ -125,6 +128,7 @@ const server = http.createServer(async (req, res) => {
       service: 'MAVIK GCOS',
       version: updater.currentVersion(),
       multiUser: true,
+      device: auth.deviceFromRequest(req),
       setupRequired: auth.setupRequired(),
       airtableConfigured: Boolean(AIRTABLE_TOKEN),
       airtableSync: airtableSync.status(),
@@ -135,17 +139,32 @@ const server = http.createServer(async (req, res) => {
       uptimeSeconds: Math.round(process.uptime()),
       time: new Date().toISOString()
     });
-    if (req.method === 'GET' && url.pathname === '/api/auth/status') return json(res, 200, { setupRequired: auth.setupRequired(), user: auth.authenticate(req) });
-    if (req.method === 'POST' && url.pathname === '/api/auth/setup') return json(res, 201, { user: auth.createInitialAdmin(await readBody(req)) });
-    if (req.method === 'POST' && url.pathname === '/api/auth/login') { const body = await readBody(req); return json(res, 200, auth.login(body.username, body.password)); }
+    if (req.method === 'GET' && url.pathname === '/api/auth/status') return json(res, 200, { setupRequired: auth.setupRequired(), device: auth.deviceFromRequest(req), user: auth.authenticate(req) });
+    if (req.method === 'POST' && url.pathname === '/api/auth/setup') {
+      const body = await readBody(req);
+      const device = auth.normalizeDevice(body.device || auth.deviceFromRequest(req));
+      return json(res, 201, { user: auth.createInitialAdmin(body, { device }), device });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/auth/login') {
+      const body = await readBody(req);
+      const device = auth.normalizeDevice(body.device || auth.deviceFromRequest(req));
+      return json(res, 200, auth.login(body.username, body.password, { device }));
+    }
     if (req.method === 'POST' && url.pathname === '/api/auth/logout') { auth.logout(auth.tokenFromRequest(req)); return json(res, 200, { ok: true }); }
 
-    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha' || url.pathname === '/jarvis') && !auth.authenticate(req)) return redirect(res, '/login');
+    const protectedPages = ['/', '/alpha', '/iphone', '/jarvis'];
+    if (req.method === 'GET' && protectedPages.includes(url.pathname) && !auth.authenticate(req)) {
+      return redirect(res, `/login?next=${encodeURIComponent(url.pathname === '/' ? (auth.deviceFromRequest(req) === 'iphone' ? '/iphone' : '/alpha') : url.pathname)}`);
+    }
     const user = requireUser(req);
 
-    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha')) return servePage(res, 'alpha.html', 'MAVIK GCOS introuvable', true);
+    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha' || url.pathname === '/iphone')) return servePage(res, 'alpha.html', 'MAVIK GCOS introuvable', true);
     if (req.method === 'GET' && url.pathname === '/jarvis') { auth.requirePermission(user, 'jarvis.use'); return servePage(res, 'jarvis.html', 'Jarvis introuvable', true); }
-    if (req.method === 'GET' && url.pathname === '/api/auth/me') return json(res, 200, { user });
+    if (req.method === 'GET' && url.pathname === '/api/auth/me') return json(res, 200, { user, device: auth.deviceFromRequest(req) });
+    if (req.method === 'POST' && url.pathname === '/api/auth/pin') {
+      const body = await readBody(req);
+      return json(res, 200, { user: auth.setCurrentDevicePin(user, body, auth.deviceFromRequest(req)) });
+    }
     if (req.method === 'GET' && url.pathname === '/api/users') return json(res, 200, { users: auth.listUsers(user), roles: auth.ROLE_PERMISSIONS });
     if (req.method === 'POST' && url.pathname === '/api/users') return json(res, 201, { user: auth.createUser(user, await readBody(req)) });
 
@@ -246,7 +265,7 @@ updater.startAutomaticChecks();
 diagnostics.startAutomaticChecks(diagnosticDependencies);
 server.listen(PORT, HOST, () => {
   console.log(`MAVIK GCOS ${updater.currentVersion()} started on http://${HOST}:${PORT}`);
-  console.log('Multi-user authentication: enabled');
+  console.log('Multi-user authentication: enabled with separate PC/iPhone codes');
   console.log(`Airtable synchronization: ${airtableSync.configured() ? 'enabled' : 'disabled'}`);
   console.log(`Mavik Insights: enabled (${insightsStore.status().storedEvents} local events)`);
   console.log(`Automatic updates: ${updater.state().enabled ? 'enabled' : 'disabled'}`);
