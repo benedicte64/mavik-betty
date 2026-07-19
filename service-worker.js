@@ -1,4 +1,4 @@
-const CACHE='jarvis-gentlecare-v26';
+const CACHE='jarvis-gentlecare-v27';
 const CORE=['./','./index.html','./planning.html','./employe.html','./admin.html','./gestion.html','./clients.html','./stock.html','./devis.html','./ordres.html','./vehicule.html','./direction.html','./gcos-comms.js','./jarvis-core.js','./icon.svg','./manifest.webmanifest','./storage.js','./install.js','./boot.js','./jarvis-responsive.css','./atelier-responsive.css'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())});
@@ -8,12 +8,13 @@ self.addEventListener('fetch',event=>{
   const nav=event.request.mode==='navigate'||event.request.destination==='document';
   if(nav){
     event.respondWith(fetch(event.request,{cache:'no-store'}).then(async response=>{
-      let finalResponse=response;
-      if(url.pathname.endsWith('/employe.html')){
-        const html=await response.text();
-        finalResponse=new Response(html.replace('</head>','<link rel="stylesheet" href="atelier-responsive.css?v=26"></head>'),{status:response.status,statusText:response.statusText,headers:{'Content-Type':'text/html; charset=utf-8'}});
-      }else if(url.pathname.endsWith('/admin.html')){
-        let html=await response.text();
+      const contentType=response.headers.get('content-type')||'';
+      if(!contentType.includes('text/html'))return response;
+      let html=await response.text();
+      if(url.pathname.endsWith('/employe.html')&&!html.includes('atelier-responsive.css')){
+        html=html.replace('</head>','<link rel="stylesheet" href="atelier-responsive.css?v=27"></head>');
+      }
+      if(url.pathname.endsWith('/admin.html')){
         html=html.replace("['▤','Devis','Offres et validations','']","['▤','Devis','Offres et validations','devis.html']")
           .replace("['◫','Commandes','Achats et livraisons','']","['◫','Ordres de travail','Suivi atelier','ordres.html']")
           .replace("['🏭','Fournisseurs','Contacts techniques','']","['🏭','Fournisseurs','Contacts techniques','stock.html?tab=suppliers']")
@@ -21,13 +22,17 @@ self.addEventListener('fetch',event=>{
           .replace("['🛠','Interventions','Rapports et qualité','employe.html']","['🛠','Interventions','Rapports et qualité','ordres.html']")
           .replace("['🚘','Véhicules','Dossiers et photos','clients.html']","['🚘','Véhicules 360°','Historique et diagnostic Jarvis','vehicule.html']")
           .replace("['🎓','Formation','Compétences','']","['📊','Direction','Rentabilité et prévisions','direction.html']");
-        finalResponse=new Response(html,{status:response.status,statusText:response.statusText,headers:{'Content-Type':'text/html; charset=utf-8'}});
       }
-      const copy=finalResponse.clone();
-      caches.open(CACHE).then(cache=>cache.put(event.request,copy));
+      if(!html.includes('gcos-comms.js'))html=html.replace('</body>','<script src="gcos-comms.js?v=27"></script></body>');
+      if(!html.includes('jarvis-core.js'))html=html.replace('</body>','<script src="jarvis-core.js?v=27"></script></body>');
+      if(!html.includes('jarvisGlobalButton')){
+        html=html.replace('</body>',`<style>#jarvisGlobalButton{position:fixed;right:18px;bottom:18px;z-index:41000;width:62px;height:62px;border-radius:50%;border:1px solid #80e8ff;background:radial-gradient(circle at 35% 30%,#eaffff,#46d9ff 25%,#087fa8 50%,#03131c 76%);color:#fff;font-size:1.55rem;box-shadow:0 0 24px #00cfff88;cursor:pointer}#jarvisGlobalButton:active{transform:scale(.94)}@media(max-width:720px){#jarvisGlobalButton{right:14px;bottom:78px;width:56px;height:56px}}</style><button id="jarvisGlobalButton" aria-label="Ouvrir Jarvis" title="Parler à Jarvis">🎙</button></body>`);
+      }
+      const finalResponse=new Response(html,{status:response.status,statusText:response.statusText,headers:{'Content-Type':'text/html; charset=utf-8'}});
+      const copy=finalResponse.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));
       return finalResponse;
     }).catch(()=>caches.match(event.request).then(cached=>cached||caches.match('./index.html'))));
     return;
   }
-  event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));return response}).catch(()=>caches.match(event.request).then(cached=>cached||caches.match('./index.html'))))
+  event.respondWith(fetch(event.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));return response}).catch(()=>caches.match(event.request).then(cached=>cached||caches.match('./index.html'))));
 });
