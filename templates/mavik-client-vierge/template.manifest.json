@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "templateVersion": "0.1.0",
+  "status": "WAITING_FOR_IDENTITY",
+  "createdAt": "2026-07-20",
+  "product": "MAVIK",
+  "publisher": "Avenor",
+  "identity": {
+    "companyName": null,
+    "assistantName": null
+  },
+  "coreSource": {
+    "repository": "benedicte64/mavik-betty",
+    "branch": "main",
+    "baselineCommit": "917ead926a6943ca0cd9c62c39a765e10e3c9a05"
+  },
+  "architecture": {
+    "sharedCore": "MAVIK Core",
+    "configurationFactory": "MAVIK Studio",
+    "instanceStrategy": "one-isolated-instance-per-client",
+    "copyClientData": false,
+    "copyClientIdentity": false
+  },
+  "invariants": [
+    "tenant-isolation",
+    "role-based-access-control",
+    "adaptive-accessibility",
+    "human-validation-for-material-actions",
+    "auditability",
+    "secret-redaction",
+    "rollback-capability"
+  ]
+}

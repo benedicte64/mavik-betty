@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "ideas": [
+    {
+      "id": "accessibility-onboarding-dialogue",
+      "title": "Premier accueil vocal et écrit qui demande qui veut travailler avec l'IA",
+      "status": "candidate",
+      "sourceLineages": ["betty"],
+      "decision": "not-enabled",
+      "evaluation": ["consent", "fallback-without-voice", "screen-reader", "first-code-confirmation"]
+    },
+    {
+      "id": "capability-recommendation-by-business",
+      "title": "Proposer un lot de modules selon l'activité sans l'imposer",
+      "status": "candidate",
+      "sourceLineages": ["mavik-core"],
+      "decision": "not-enabled",
+      "evaluation": ["explainability", "client-choice", "free-alternative", "reversibility"]
+    },
+    {
+      "id": "connector-auto-discovery",
+      "title": "Détecter les connexions disponibles et préparer leur paramétrage",
+      "status": "candidate",
+      "sourceLineages": ["mavik-core"],
+      "decision": "not-enabled",
+      "evaluation": ["admin-consent", "least-privilege", "secret-storage", "dry-run"]
+    },
+    {
+      "id": "cross-system-priority-recalculation",
+      "title": "Recalculer les priorités à partir des événements de l'entreprise",
+      "status": "candidate",
+      "sourceLineages": ["betty"],
+      "decision": "not-enabled",
+      "evaluation": ["source-confidence", "reason-display", "manual-override", "alert-fatigue"]
+    },
+    {
+      "id": "offline-continuity",
+      "title": "Conserver les fonctions essentielles sans connexion puis resynchroniser",
+      "status": "candidate",
+      "sourceLineages": ["jarvis"],
+      "decision": "not-enabled",
+      "evaluation": ["conflict-resolution", "encryption", "stale-data-warning", "audit"]
+    },
+    {
+      "id": "neutral-assistant-character-builder",
+      "title": "Choisir nom, voix, apparence, ton et mouvement de l'IA",
+      "status": "candidate",
+      "sourceLineages": ["betty", "mavik-core"],
+      "decision": "not-enabled",
+      "evaluation": ["brand-rights", "reduce-motion", "voice-choice", "role-consistency"]
+    },
+    {
+      "id": "safe-action-preparation",
+      "title": "Préparer les e-mails, commandes et opérations sans les exécuter avant validation",
+      "status": "candidate",
+      "sourceLineages": ["betty", "jarvis"],
+      "decision": "not-enabled",
+      "evaluation": ["human-validation", "recipient-check", "amount-check", "rollback"]
+    },
+    {
+      "id": "proven-feature-promotion",
+      "title": "Promouvoir une option candidate après preuves et tests multi-profils",
+      "status": "candidate",
+      "sourceLineages": ["mavik-core"],
+      "decision": "not-enabled",
+      "evaluation": ["tests", "accessibility", "security", "documentation", "two-client-reuse"]
+    }
+  ]
+}

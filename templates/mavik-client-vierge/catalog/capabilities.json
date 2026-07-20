@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "rule": "Une option est disponible mais désactivée jusqu'au choix explicite du client.",
+  "capabilities": [
+    {
+      "id": "adaptive-authentication",
+      "label": "Identification adaptée au handicap",
+      "domain": "accessibility",
+      "sourceLineages": ["betty", "mavik-core"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "configuration"
+    },
+    {
+      "id": "adaptive-role-interface",
+      "label": "Interface adaptée au rôle et aux besoins",
+      "domain": "accessibility",
+      "sourceLineages": ["betty", "jarvis", "mavik-core"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "configuration"
+    },
+    {
+      "id": "voice-text-conversation",
+      "label": "Conversation continue vocale et écrite",
+      "domain": "assistant",
+      "sourceLineages": ["betty", "jarvis"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "privacy-and-voice"
+    },
+    {
+      "id": "contextual-working-memory",
+      "label": "Mémoire de travail contextuelle par utilisateur",
+      "domain": "assistant",
+      "sourceLineages": ["jarvis", "mavik-core"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "retention-policy"
+    },
+    {
+      "id": "operational-event-bus",
+      "label": "Bus d'événements opérationnels",
+      "domain": "core",
+      "sourceLineages": ["betty", "mavik-core"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "connector-scope"
+    },
+    {
+      "id": "operational-priority-brain",
+      "label": "Synthèse, priorités et actions préparées",
+      "domain": "management",
+      "sourceLineages": ["betty", "jarvis"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "every-material-action"
+    },
+    {
+      "id": "internal-messaging",
+      "label": "Messagerie et annuaire internes",
+      "domain": "collaboration",
+      "sourceLineages": ["jarvis"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "recipient-and-send"
+    },
+    {
+      "id": "calendar-sync",
+      "label": "Agendas, rendez-vous et conflits",
+      "domain": "collaboration",
+      "sourceLineages": ["betty", "jarvis"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "calendar-write"
+    },
+    {
+      "id": "documents-and-procedures",
+      "label": "Documents, procédures et base de connaissances",
+      "domain": "knowledge",
+      "sourceLineages": ["jarvis", "mavik-core"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "publication"
+    },
+    {
+      "id": "tasks-and-notifications",
+      "label": "Tâches, alertes et relances",
+      "domain": "operations",
+      "sourceLineages": ["betty", "jarvis", "mavik-core"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "notification-policy"
+    },
+    {
+      "id": "crm-sales-quotes",
+      "label": "Prospects, ventes, devis et relances",
+      "domain": "commercial",
+      "sourceLineages": ["betty", "jarvis"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "price-and-send"
+    },
+    {
+      "id": "subscription-management",
+      "label": "Abonnements logiciels et échéances",
+      "domain": "commercial",
+      "sourceLineages": ["betty"],
+      "maturity": "candidate",
+      "enabledByDefault": false,
+      "humanValidation": "contract-change"
+    },
+    {
+      "id": "accounting-einvoice",
+      "label": "Comptabilité synchronisée et facturation électronique",
+      "domain": "finance",
+      "sourceLineages": ["mavik-core"],
+      "maturity": "candidate",
+      "enabledByDefault": false,
+      "humanValidation": "every-financial-write"
+    },
+    {
+      "id": "expenses-and-payments",
+      "label": "Dépenses, factures, paiements et retards",
+      "domain": "finance",
+      "sourceLineages": ["betty", "mavik-core"],
+      "maturity": "candidate",
+      "enabledByDefault": false,
+      "humanValidation": "every-financial-write"
+    },
+    {
+      "id": "employee-flow-and-leave",
+      "label": "Activité des équipes, pauses et congés",
+      "domain": "people",
+      "sourceLineages": ["jarvis"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "manager-approval"
+    },
+    {
+      "id": "workplace-morale",
+      "label": "Encouragements et ton d'équipe configurables",
+      "domain": "people",
+      "sourceLineages": ["jarvis"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "tone-and-opt-in"
+    },
+    {
+      "id": "product-development-support",
+      "label": "Produits, développement, versions et support",
+      "domain": "software-company",
+      "sourceLineages": ["betty"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "release"
+    },
+    {
+      "id": "workshop-and-assets",
+      "label": "Atelier, actifs, interventions et planning",
+      "domain": "industry",
+      "sourceLineages": ["jarvis"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "completion-and-report"
+    },
+    {
+      "id": "stock-and-suppliers",
+      "label": "Stocks, seuils, commandes et fournisseurs",
+      "domain": "operations",
+      "sourceLineages": ["betty", "jarvis"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "purchase-order"
+    },
+    {
+      "id": "photo-and-visual-intake",
+      "label": "Photos, pièces jointes et analyse visuelle",
+      "domain": "operations",
+      "sourceLineages": ["jarvis"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "privacy-and-publication"
+    },
+    {
+      "id": "customer-intake-and-reputation",
+      "label": "Dossier client et sollicitations d'avis conformes",
+      "domain": "customer-experience",
+      "sourceLineages": ["jarvis"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "consent-and-send"
+    },
+    {
+      "id": "emergency-assistance",
+      "label": "Assistance d'urgence avec choix explicites",
+      "domain": "safety",
+      "sourceLineages": ["jarvis"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "always"
+    },
+    {
+      "id": "backup-update-diagnostics",
+      "label": "Sauvegarde, mises à jour, migration et diagnostic",
+      "domain": "platform",
+      "sourceLineages": ["betty", "jarvis", "mavik-core"],
+      "maturity": "proven",
+      "enabledByDefault": false,
+      "humanValidation": "deploy-and-rollback"
+    },
+    {
+      "id": "external-connectors",
+      "label": "E-mail, agenda, CRM, stockage, téléphonie et banque",
+      "domain": "platform",
+      "sourceLineages": ["betty", "jarvis", "mavik-core"],
+      "maturity": "candidate",
+      "enabledByDefault": false,
+      "humanValidation": "oauth-scope-and-data-map"
+    }
+  ]
+}
