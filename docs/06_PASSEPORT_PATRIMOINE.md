@@ -1,7 +1,7 @@
 # MAVIK GCOS — Passeport Patrimoine Premium
 
 Statut : spécification fonctionnelle de référence
-Version cible : 0.30 Foundation
+Version cible : 0.31 Pré-diagnostic client
 
 ## 1. Rôle du Passeport
 
@@ -10,12 +10,14 @@ Le Passeport Patrimoine est le document principal du véhicule dans MAVIK. Il co
 ## 2. Principes obligatoires
 
 - Une information n’est saisie qu’une seule fois.
-- Le Passeport réutilise les données existantes : client, véhicule, intervention, devis, documents, médias, observations et consommations.
+- Le Passeport réutilise les données existantes : client, véhicule, intervention, devis, documents, médias, observations, consommations et déclarations du propriétaire.
 - Aucun document n’est dupliqué : il est référencé depuis le Passeport.
 - Le Passeport doit être ouvrable depuis tous les écrans pertinents de MAVIK.
 - L’accès au Passeport ne doit jamais dépasser deux clics.
 - La longueur du Passeport est dynamique selon la richesse du dossier.
 - Le technicien saisit le minimum ; MAVIK et Jarvis structurent et rédigent le reste.
+- MAVIK ne doit pas imposer de calendrier de contrôle automatique arbitraire.
+- Les recommandations de suivi sont personnalisées selon l’état réel du véhicule, son usage et les constats réalisés.
 
 ## 3. Structure fonctionnelle
 
@@ -47,7 +49,65 @@ Le Passeport Patrimoine est le document principal du véhicule dans MAVIK. Il co
 - Particularités
 - Valeur ou rareté, lorsque pertinente
 
-### 3.3 Historique des interventions
+### 3.3 Pré-diagnostic client avant devis
+
+Avant la validation et l’envoi d’un devis, MAVIK doit demander au client les problèmes connus du véhicule.
+
+Le pré-diagnostic doit permettre de recueillir :
+
+- l’historique connu du véhicule ;
+- la durée de possession ;
+- l’utilisation principale : quotidienne, loisir, collection, compétition ou autre ;
+- les conditions de stockage : garage fermé, extérieur, bord de mer ou autre ;
+- les problèmes connus ;
+- les symptômes constatés ;
+- les zones qui inquiètent le propriétaire ;
+- les réparations ou restaurations antérieures connues ;
+- les traitements anticorrosion déjà réalisés ;
+- les accidents connus ;
+- les priorités du client ;
+- les commentaires libres ;
+- les photographies transmises par le client ;
+- la date de déclaration.
+
+Catégories minimales de problèmes connus :
+
+- corrosion visible ou supposée ;
+- fuite moteur ;
+- fuite de boîte ;
+- fuite de pont ;
+- fuite de direction assistée ;
+- fuite de liquide de refroidissement ;
+- fuite de frein ;
+- bruit ;
+- vibration ;
+- grincement ;
+- claquement ;
+- protection anticorrosion ancienne ou inconnue ;
+- réparation précédente ;
+- autre anomalie.
+
+Le devis ne doit pas être considéré comme complet tant que cette étape n’a pas été renseignée ou explicitement marquée comme « aucun problème connu déclaré ».
+
+### 3.4 Déclarations du propriétaire
+
+Les informations recueillies lors du pré-diagnostic sont conservées dans une rubrique permanente du Passeport intitulée « Déclarations du propriétaire ».
+
+Pour chaque déclaration, MAVIK doit conserver :
+
+- la description du client ;
+- la catégorie ;
+- la zone concernée ;
+- la date ;
+- les photographies associées ;
+- le niveau d’inquiétude exprimé ;
+- le lien avec le devis ;
+- le lien avec l’intervention correspondante ;
+- le constat GentleCarE ;
+- le statut : confirmé, non constaté, à contrôler, nouvelle anomalie découverte ou résolu ;
+- l’évolution constatée au fil des interventions.
+
+### 3.5 Historique des interventions
 
 Pour chaque intervention :
 
@@ -60,9 +120,10 @@ Pour chaque intervention :
 - Lien vers le rapport complet
 - Lien vers les documents associés
 
-### 3.4 État d’entrée
+### 3.6 État d’entrée
 
 - Demande du client
+- Problèmes connus déclarés avant devis
 - État visuel
 - Réserves
 - Corrosion visible
@@ -70,7 +131,7 @@ Pour chaque intervention :
 - Photographies de réception
 - Observations contradictoires
 
-### 3.5 Diagnostic et observations
+### 3.7 Diagnostic et observations
 
 Chaque observation doit contenir :
 
@@ -86,8 +147,9 @@ Chaque observation doit contenir :
 - Décision prise
 - Client informé ou non
 - Suivi requis
+- Lien éventuel avec une déclaration préalable du propriétaire
 
-### 3.6 Protocole cryogénique
+### 3.8 Protocole cryogénique
 
 - Machine utilisée
 - Buses
@@ -97,7 +159,7 @@ Chaque observation doit contenir :
 - Quantité de glace carbonique
 - Incidents ou limites
 
-### 3.7 Protection Dinitrol
+### 3.9 Protection Dinitrol
 
 - Produits appliqués
 - Numéros de lot
@@ -108,7 +170,7 @@ Chaque observation doit contenir :
 - Conditions d’application
 - Temps de séchage
 
-### 3.8 Avant / Après
+### 3.10 Avant / Après
 
 - Comparaisons par zone
 - Photo avant
@@ -117,7 +179,7 @@ Chaque observation doit contenir :
 - Éléments restant visibles
 - Résultat obtenu
 
-### 3.9 Contrôle qualité
+### 3.11 Contrôle qualité
 
 - Checklist finale
 - Conformité au devis
@@ -126,16 +188,18 @@ Chaque observation doit contenir :
 - Validation du responsable
 - Date de validation
 
-### 3.10 Conseils et suivi
+### 3.12 Conseils et suivi
 
-- Recommandations
-- Surveillance
-- Retouches
+- Recommandations personnalisées
+- Surveillance conseillée
+- Retouches éventuelles
 - Limites de garantie
-- Date du prochain contrôle
 - Actions suggérées par Jarvis
+- Justification technique de chaque recommandation
 
-### 3.11 Certificat
+Aucune échéance fixe ne doit être générée automatiquement. Une date de contrôle ne peut être ajoutée que lorsqu’elle est décidée et validée explicitement par GentleCarE pour le véhicule concerné.
+
+### 3.13 Certificat
 
 - Numéro unique
 - Signature
@@ -144,9 +208,10 @@ Chaque observation doit contenir :
 - Empreinte ou hash du document
 - Mention de version
 
-### 3.12 Galerie et archive numérique
+### 3.14 Galerie et archive numérique
 
 - Réception
+- Photos fournies avant devis
 - Avant
 - Pendant
 - Observations
@@ -163,6 +228,7 @@ Le Passeport ne doit pas être recréé à zéro à chaque intervention. Il doit
 - le suivi de la progression d’une corrosion ou anomalie ;
 - la comparaison des photos d’une même zone ;
 - la détection des observations résolues, stables ou aggravées ;
+- la comparaison entre les problèmes déclarés et les constats GentleCarE ;
 - la conservation de toutes les versions précédentes.
 
 ## 5. Accès universel dans MAVIK
@@ -187,11 +253,16 @@ Chaque accès ouvre le même document et la même version de référence.
 Jarvis doit pouvoir :
 
 - détecter les informations manquantes ;
+- empêcher l’envoi d’un devis sans pré-diagnostic renseigné ou refus explicite du client ;
+- générer une checklist d’inspection à partir des problèmes connus ;
+- identifier les zones sensibles à contrôler ;
+- proposer les photographies obligatoires à prendre ;
+- comparer les déclarations du client avec les constats atelier ;
 - rédiger les résumés techniques ;
 - classer les photos ;
 - proposer les meilleures comparaisons avant/après ;
 - transformer les observations brutes en texte client clair ;
-- générer les recommandations ;
+- générer des recommandations personnalisées ;
 - signaler les incohérences ;
 - préparer le Passeport pour validation ;
 - empêcher la publication d’un Passeport incomplet selon les règles définies.
@@ -219,17 +290,27 @@ Jarvis doit pouvoir :
 La première étape de développement doit réutiliser le moteur existant de rapport d’intervention, puis le faire évoluer vers :
 
 1. un modèle de données Passeport ;
-2. une génération HTML Premium ;
-3. une liaison avec les observations et les médias ;
-4. une version durable par véhicule ;
-5. une ouverture universelle depuis les modules concernés ;
-6. un historique multi-interventions.
+2. un modèle de pré-diagnostic rattaché au devis et au véhicule ;
+3. une génération HTML Premium ;
+4. une liaison avec les déclarations, observations et médias ;
+5. une version durable par véhicule ;
+6. une ouverture universelle depuis les modules concernés ;
+7. un historique multi-interventions ;
+8. une checklist Jarvis générée avant intervention.
 
-## 10. Critères d’acceptation de la version 0.30
+## 10. Critères d’acceptation de la version 0.31
 
+- Le pré-diagnostic est proposé avant la validation du devis.
+- Le client peut déclarer ses problèmes connus et transmettre des photos.
+- L’absence de problème connu peut être explicitement enregistrée.
+- Les déclarations sont rattachées au client, au véhicule et au devis.
+- Jarvis génère une checklist d’inspection à partir des déclarations.
+- Les constats GentleCarE peuvent être comparés aux déclarations du propriétaire.
+- Les déclarations apparaissent dans le Passeport Patrimoine.
+- Aucune échéance de contrôle fixe n’est imposée automatiquement.
 - Un Passeport peut être généré depuis une intervention.
 - Il reprend automatiquement les données existantes.
-- Il contient au minimum identité, intervention, observations, médias, avant/après, contrôle qualité et recommandations.
+- Il contient au minimum identité, déclarations, intervention, observations, médias, avant/après, contrôle qualité et recommandations.
 - Il est versionné.
 - Il est rattaché au véhicule.
 - Il est ouvrable depuis la fiche véhicule et l’intervention.
