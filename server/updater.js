@@ -91,7 +91,7 @@ async function download() {
 function restartServer() { const entry = path.join(__dirname, 'server.js'); const helper = path.join(__dirname, 'restart-helper.js'); const child = spawn(process.execPath, [helper, String(process.pid), entry, __dirname], { cwd: __dirname, detached: true, stdio: 'ignore', windowsHide: true, env: process.env }); child.unref(); setTimeout(() => process.exit(0), 400).unref(); }
 function validateInstalledFiles() {
   const scripts = [
-    'betty-core.js',
+    'betty-core.js','operational-event-bus.js','operational-brain.js',
     'server.js','auth.js','jarvis.js','jarvis-extended.js','jarvis-knowledge.js','jarvis-intelligence.js','jarvis-morale.js','emergency-alert.js','employee-flow.js','leave-planning.js',
     'quote-workflow.js','quote-workflow-current.js','quote-workflow-reference.js','quote-studio.js','quote-studio-service.js','quote-requests.js','tariff-catalog.js','workshop-procedures.js','workshop-service.js',
     'planning.js','planning-service.js','calendar-bridge.js','startup-status.js','intervention-report.js','client-intake.js','reputation.js','internal-messaging.js','software-company.js',

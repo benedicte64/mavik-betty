@@ -2,6 +2,21 @@
 
 Toutes les évolutions fonctionnelles, architecturales et documentaires significatives sont consignées ici.
 
+## 2026-07-20 — Betty Operational Brain
+
+### Ajouté
+- Bus d’Événements persistant pour recevoir et rendre visibles les événements Gmail, Agenda, CRM, Stock, Comptabilité, Téléphonie, Documents, Opérations, IA et MAVIK.
+- Cerveau opérationnel qui relie les événements aux données métier, calcule la charge et classe les priorités avec une explication.
+- Rafraîchissement automatique de l’interface toutes les trente secondes avec signalement d’une nouvelle priorité.
+- Journal visible selon le rôle, isolation par entreprise, déduplication des événements et masquage des secrets techniques.
+- Point d’entrée sécurisé pour les futurs connecteurs et API de synthèse, statut et consultation des événements.
+
+### Transparence
+- La démonstration indique clairement qu’elle ne surveille aucun système réel.
+- Betty n’annonce une analyse en temps réel que lorsqu’au moins une source a effectivement transmis un événement.
+- Les actions préparées restent soumises à validation lorsqu’elles ont un impact sur l’entreprise.
+- Le serveur passe en version `0.34.0`.
+
 ## 2026-07-20 — Betty Core v1
 
 ### Transformé

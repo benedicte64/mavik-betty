@@ -1,5 +1,7 @@
 'use strict';
 
+const operationalBrain = require('./operational-brain');
+
 const PROFILE = Object.freeze({ owner:'Avenor', product:'MAVIK', assistant:'Betty', version:'1.0.0', model:'adaptive-business-core' });
 const CAPABILITIES = Object.freeze([
   'Mémoire métier persistante', 'Journal d’audit', 'Gestionnaire de tâches', 'Centre de notifications',
@@ -85,11 +87,11 @@ function metrics(store, user = {}) {
 }
 
 function brief(store, user = {}) {
-  const alerts = notifications(store, user); const recommendations = suggestions(store, user); const summary = metrics(store, user);
+  const alerts = notifications(store, user); const recommendations = suggestions(store, user); const summary = metrics(store, user); const operations = operationalBrain.brief(store,user);
   return {
     profile:PROFILE, capabilities:CAPABILITIES, user:{ id:user.id || '', name:user.name || user.username || '', role:user.role || 'trainee', roleLabel:ROLE_LABELS[user.role] || user.role || 'Utilisateur', home:ROLE_HOME[user.role] || 'dashboard' },
     greeting:`Bonjour ${firstName(user)}. Je vois ${summary.pendingTasks} tâche(s) en attente et ${alerts.length} alerte(s) utiles pour votre espace ${ROLE_LABELS[user.role] || 'MAVIK'}.`,
-    metrics:summary, notifications:alerts, suggestions:recommendations, memory:memory(store,user,5),
+    metrics:summary, notifications:alerts, suggestions:recommendations, operations, memory:memory(store,user,5),
     principles:{ humanValidation:true, traceability:true, explainedRecommendations:true, clientNeutral:true }
   };
 }
@@ -111,8 +113,9 @@ function execute(store, input = {}, user = {}) {
     return result(store,user,input,{ intent:'create-task-confirmed', answer:`C’est fait. La tâche « ${task.title} » est enregistrée et tracée.`, view:'dashboard', data:{ task }, explanation:'L’action a été exécutée après votre confirmation explicite.' });
   }
   if (/bonjour|priorit|point du jour|résumé|resume|que dois-je|quoi faire/.test(query)) {
-    const data = brief(store,user); const first = data.suggestions[0];
-    return result(store,user,input,{ intent:'daily-brief', answer:first?`${data.greeting} Ma première recommandation : ${first.title}. ${first.reason}`:data.greeting, view:first?.view || data.user.home, data });
+    const data = brief(store,user); const operational = data.operations.firstRecommendation; const first = operational || data.suggestions[0];
+    const reason = operational?.why || first?.reason || '';
+    return result(store,user,input,{ intent:'daily-brief', answer:first?`${data.greeting} Ma priorité n°1 : ${first.title}. ${reason}`:data.greeting, view:first?.view || data.user.home, data });
   }
   if (/commercial|vente|prospect|pipeline|abonnement/.test(query)) return allowed(user,'commercial') ? result(store,user,input,{ intent:'commercial', answer:`Le pipeline actif est de ${money(summary.pipeline)}, dont ${money(summary.weightedPipeline)} pondérés.`, view:'commercial', data:{ metrics:summary } }) : result(store,user,input,{ intent:'access-denied', answer:'Cet espace commercial n’est pas autorisé pour votre rôle.', view:ROLE_HOME[user.role] || 'dashboard', explanation:'Betty applique les droits de votre profil avant de consulter les données.' });
   if (/compta|comptab|facture|impay|trésor/.test(query)) return allowed(user,'accounting') ? result(store,user,input,{ intent:'accounting', answer:`Le montant des factures encore ouvertes est de ${money(summary.unpaidInvoices)}.`, view:'accounting', data:{ metrics:summary } }) : result(store,user,input,{ intent:'access-denied', answer:'Cet espace comptable n’est pas autorisé pour votre rôle.', view:ROLE_HOME[user.role] || 'dashboard', explanation:'Betty applique les droits de votre profil avant de consulter les données.' });

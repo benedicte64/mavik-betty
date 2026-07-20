@@ -12,7 +12,7 @@ const EMPTY_DB = {
   workSessions: [], leaveRequests: [], externalCalendarEvents: [],
   opportunities: [], softwareProducts: [], softwareProjects: [], subscriptions: [],
   invoices: [], expenses: [], contracts: [], supportTickets: [], meetings: [], events: [],
-  bettyMemory: [], bettyAudit: [], bettySuggestions: [], bettyNotifications: []
+  bettyMemory: [], bettyAudit: [], bettySuggestions: [], bettyNotifications: [], operationalEvents: []
 };
 const DEFAULT_CHECKLIST = {
   receptionPhotos: false, mileageRecorded: false, clientApproval: false,
