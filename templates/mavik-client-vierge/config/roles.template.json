@@ -1,0 +1,41 @@
+{
+  "policy": "least-privilege",
+  "roles": [
+    {
+      "id": "direction",
+      "label": "Direction",
+      "permissions": [],
+      "interfaceNeeds": []
+    },
+    {
+      "id": "commercial",
+      "label": "Équipe commerciale",
+      "permissions": [],
+      "interfaceNeeds": []
+    },
+    {
+      "id": "secretariat",
+      "label": "Secrétariat",
+      "permissions": [],
+      "interfaceNeeds": []
+    },
+    {
+      "id": "comptabilite",
+      "label": "Comptabilité",
+      "permissions": [],
+      "interfaceNeeds": []
+    },
+    {
+      "id": "production",
+      "label": "Production",
+      "permissions": [],
+      "interfaceNeeds": []
+    },
+    {
+      "id": "support",
+      "label": "Support",
+      "permissions": [],
+      "interfaceNeeds": []
+    }
+  ]
+}

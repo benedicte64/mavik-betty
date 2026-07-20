@@ -1,0 +1,49 @@
+{
+  "status": "WAITING_FOR_IDENTITY",
+  "company": {
+    "name": null,
+    "siret": null,
+    "adminEmail": null,
+    "country": "FR",
+    "timezone": "Europe/Paris",
+    "businessVocabulary": []
+  },
+  "assistant": {
+    "name": null,
+    "displayName": null,
+    "voice": null,
+    "tone": null,
+    "avatar": null,
+    "wakePhrase": null
+  },
+  "branding": {
+    "logo": null,
+    "primaryColor": null,
+    "secondaryColor": null,
+    "font": null
+  },
+  "accessibility": {
+    "askNeedsAtFirstLogin": true,
+    "textAndVoiceGreeting": true,
+    "reduceMotionAvailable": true,
+    "highContrastAvailable": true,
+    "largeTextAvailable": true,
+    "screenReaderModeAvailable": true,
+    "oneHandModeAvailable": true,
+    "voiceOnlyModeAvailable": true
+  },
+  "authentication": {
+    "firstLoginCreatesPersonalMethod": true,
+    "methodsAvailable": [
+      "personal-code",
+      "passkey",
+      "trusted-device",
+      "assisted-identification"
+    ],
+    "chosenMethod": null,
+    "adminRecoveryRequired": true
+  },
+  "selectedCapabilities": [],
+  "connectors": {},
+  "users": []
+}

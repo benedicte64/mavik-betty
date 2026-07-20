@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-07-20",
+  "repositoryAccess": {
+    "available": ["benedicte64/mavik-betty"],
+    "unavailable": ["gentlecar64-ship-it/-jarvis-gentlecare"],
+    "note": "La lignée Jarvis est suivie dans l'historique et les chemins hérités du dépôt MAVIK accessible. Le dépôt externe sera ajouté seulement après accès explicite."
+  },
+  "sources": [
+    {
+      "id": "betty",
+      "label": "Profil de démonstration Betty",
+      "repository": "benedicte64/mavik-betty",
+      "branch": "main",
+      "repositoryCursor": "917ead926a6943ca0cd9c62c39a765e10e3c9a05",
+      "paths": [
+        "server/betty-core.js",
+        "server/operational-event-bus.js",
+        "server/operational-brain.js",
+        "server/software-company.js",
+        "server/public/company*",
+        "server/public/operational-brain*",
+        "docs/BETTY*"
+      ]
+    },
+    {
+      "id": "jarvis",
+      "label": "Lignée métier Jarvis",
+      "repository": "benedicte64/mavik-betty",
+      "branch": "main",
+      "repositoryCursor": "917ead926a6943ca0cd9c62c39a765e10e3c9a05",
+      "lastFeatureCommit": "cdf4404ff730ee26673684ed09ad7edcdac707ac",
+      "paths": [
+        "server/jarvis*.js",
+        "server/workshop*.js",
+        "server/planning*.js",
+        "server/quote*.js",
+        "server/internal-messaging.js",
+        "server/employee-flow.js",
+        "server/public/jarvis*",
+        "src/jarvis/**"
+      ]
+    }
+  ],
+  "reviewRules": {
+    "notifyOnlyMeaningfulChanges": true,
+    "automaticActivation": false,
+    "automaticClientDataCopy": false,
+    "requiredArtifactUpdates": [
+      "catalog/capabilities.json",
+      "catalog/ideas-backlog.json",
+      "CHANGELOG.md"
+    ]
+  }
+}
