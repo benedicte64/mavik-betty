@@ -1,5 +1,6 @@
 'use strict';
 
+const path = require('node:path');
 const { spawn } = require('node:child_process');
 
 const parentPid = Number(process.argv[2] || 0);
@@ -14,7 +15,9 @@ function parentAlive() {
 
 function startServer() {
   if (!entry) process.exit(2);
-  const child = spawn(process.execPath, [entry], {
+  const runtime = path.join(cwd, 'premium-passport-runtime.js');
+  const args = require('node:fs').existsSync(runtime) ? ['-r', runtime, entry] : [entry];
+  const child = spawn(process.execPath, args, {
     cwd,
     detached: true,
     windowsHide: false,
