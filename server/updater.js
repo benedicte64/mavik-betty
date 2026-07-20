@@ -99,7 +99,7 @@ function validateInstalledFiles() {
   ];
   for (const file of scripts) execFileSync(process.execPath, ['--check', path.join(__dirname, file)], { cwd: __dirname, windowsHide: true, stdio: 'pipe', timeout: 15000 });
   const required = [
-    path.join(__dirname,'public','alpha.template.html'),path.join(__dirname,'public','login.template.html'),path.join(__dirname,'public','profile.template.html'),path.join(__dirname,'public','jarvis.template.html'),path.join(__dirname,'public','company.html'),path.join(__dirname,'public','company.css'),path.join(__dirname,'public','company-client.js'),
+    path.join(__dirname,'public','alpha.template.html'),path.join(__dirname,'public','login.template.html'),path.join(__dirname,'public','profile.template.html'),path.join(__dirname,'public','jarvis.template.html'),path.join(__dirname,'public','company.html'),path.join(__dirname,'public','company.css'),path.join(__dirname,'public','company-client.js'),path.join(__dirname,'public','betty-mascot.webp'),
     path.join(__dirname,'public','quotes.html'),path.join(__dirname,'public','planning.html'),path.join(__dirname,'public','jarvis-quote.js'),path.join(__dirname,'public','quote-studio-client.js'),path.join(__dirname,'public','quote-visual-preview.js'),
     path.join(__dirname,'public','planning-client.js'),path.join(__dirname,'public','navigation-enhancer.js'),path.join(__dirname,'public','morale-client.js'),path.join(__dirname,'public','generated','legal','index.html'),path.join(__dirname,'assets','logo','01.txt')
   ];

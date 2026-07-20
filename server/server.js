@@ -192,8 +192,8 @@ const server = http.createServer(async (req, res) => {
     const context = auth.deviceContextFromRequest(req);
 
     if (req.method === 'GET' && url.pathname === '/assets/official-logo.png') return binary(res, 200, officialLogoBuffer(), 'image/png');
-    for (const asset of ['jarvis-quote.js', 'reputation-client.js', 'command-dock.js', 'navigation-enhancer.js', 'quote-studio-client.js', 'planning-client.js', 'morale-client.js', 'company-client.js', 'company.css']) if (req.method === 'GET' && url.pathname === `/assets/${asset}`) return servePublicAsset(res, asset);
-    if (req.method === 'GET' && (url.pathname === '/company.css' || url.pathname === '/company-client.js')) return servePublicAsset(res, url.pathname.slice(1));
+    for (const asset of ['jarvis-quote.js', 'reputation-client.js', 'command-dock.js', 'navigation-enhancer.js', 'quote-studio-client.js', 'planning-client.js', 'morale-client.js', 'company-client.js', 'company.css', 'betty-mascot.webp']) if (req.method === 'GET' && url.pathname === `/assets/${asset}`) return servePublicAsset(res, asset);
+    if (req.method === 'GET' && (url.pathname === '/company.css' || url.pathname === '/company-client.js' || url.pathname === '/betty-mascot.webp')) return servePublicAsset(res, url.pathname.slice(1));
     if (req.method === 'GET' && url.pathname.startsWith('/generated/')) return servePublicAsset(res, url.pathname);
 
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha' || url.pathname === '/iphone')) return servePage(res, 'alpha.html', 'MAVIK GCOS introuvable', true);

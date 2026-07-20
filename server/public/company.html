@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="company.css">
   <style>
     .betty-head .icon-button{display:none;margin-left:auto}.dialog-fields input[type="checkbox"]{width:auto;padding:0;vertical-align:middle}
+    .betty-panel{overflow:auto}.betty-mascot-stage{position:relative;flex:0 0 248px;min-height:248px;margin:14px 0 4px;overflow:hidden;border:1px solid #e4def6;border-radius:20px;background:radial-gradient(circle at 50% 34%,#fff 0 34%,#f0ebff 70%,#e9f7ff 100%);box-shadow:inset 0 -20px 45px rgba(89,54,184,.08)}
+    .betty-mascot-stage:after{content:"";position:absolute;left:18%;right:18%;bottom:13px;height:14px;border-radius:50%;background:rgba(45,29,91,.15);filter:blur(8px)}.betty-mascot-stage img{position:absolute;z-index:1;left:50%;bottom:-44px;width:auto;height:292px;mix-blend-mode:multiply;transform-origin:50% 87%;animation:betty-skate 4.6s ease-in-out infinite alternate;will-change:transform}.betty-mascot-label{position:absolute;z-index:3;left:10px;top:10px;padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.9);color:#5336bd;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.betty-motion{position:absolute;z-index:3;right:8px;top:8px;border:1px solid #ddd5f1;border-radius:9px;background:rgba(255,255,255,.92);color:#40395c;padding:6px 8px;font-size:9px;font-weight:800;cursor:pointer}.betty-mascot-stage.paused img{animation-play-state:paused}@keyframes betty-skate{0%{transform:translateX(-54%) translateY(2px) rotate(-1.4deg)}48%{transform:translateX(-50%) translateY(-5px) rotate(.7deg)}100%{transform:translateX(-46%) translateY(1px) rotate(1.5deg)}}
+    @media(prefers-reduced-motion:reduce){.betty-mascot-stage img{animation:none;transform:translateX(-50%)}*{scroll-behavior:auto!important}}
     @media(max-width:1280px){.betty-head .icon-button{display:block}.betty-panel{transition:.2s}.betty-panel.collapsed{height:78px;overflow:hidden}.betty-panel.collapsed>:not(.betty-head){display:none}}
   </style>
 </head>
@@ -42,6 +45,11 @@
 
     <aside class="betty-panel" aria-label="Assistante Betty">
       <div class="betty-head"><div class="betty-avatar" aria-hidden="true">B</div><div><h2>Betty</h2><span><i></i> Assistante en ligne</span></div><button class="icon-button" id="bettyToggle" aria-label="Afficher ou réduire Betty" aria-expanded="true" title="Afficher ou réduire Betty">−</button></div>
+      <div class="betty-mascot-stage" id="bettyMascotStage">
+        <span class="betty-mascot-label">MAVIK adaptatif</span>
+        <img src="betty-mascot.webp" width="720" height="955" alt="Betty, l’assistante Mavik, sur ses patins à roulettes">
+        <button class="betty-motion" id="bettyMotion" type="button" aria-pressed="false">Pause animation</button>
+      </div>
       <div class="betty-brief" id="bettyAnswer">Je rassemble les priorités commerciales, administratives, financières et produit au même endroit.</div>
       <div class="betty-focus"><small>Priorité détectée</small><strong id="bettyPriority">Charger les données de l’entreprise</strong></div>
       <div class="betty-shortcuts">

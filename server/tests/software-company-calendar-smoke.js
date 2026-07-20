@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const path = require('node:path');
 const softwareCompany = require('../software-company');
 const calendar = require('../calendar-bridge');
 const auth = require('../auth');
@@ -33,6 +34,9 @@ function memoryStore() {
   assert.ok(auth.ROLE_PERMISSIONS.secretary.includes('contracts.write'));
   assert.ok(auth.ROLE_PERMISSIONS.accountant.includes('invoices.write'));
   assert.ok(auth.ROLE_PERMISSIONS.developer.includes('softwareProjects.write'));
+  const mascotPath = path.join(__dirname, '..', 'public', 'betty-mascot.webp');
+  assert.ok(fs.existsSync(mascotPath));
+  assert.ok(fs.statSync(mascotPath).size < 100_000);
   const commercialView = softwareCompany.overview(store, { id: 'commercial-1', role: 'commercial' }, auth.can);
   assert.ok(commercialView.opportunities.length > 0);
   assert.ok(commercialView.invoices.length > 0);

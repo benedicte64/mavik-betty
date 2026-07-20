@@ -318,6 +318,9 @@
   document.querySelectorAll('[data-betty]').forEach((button)=>button.addEventListener('click',()=>askBetty(button.dataset.betty)));
   $('mobileMenu').addEventListener('click',()=>document.querySelector('.company-sidebar').classList.toggle('open'));
   $('bettyToggle').addEventListener('click',()=>{const panel=document.querySelector('.betty-panel');const collapsed=panel.classList.toggle('collapsed');$('bettyToggle').textContent=collapsed?'+':'−';$('bettyToggle').setAttribute('aria-expanded',String(!collapsed));});
+  function setMascotMotion(paused){$('bettyMascotStage').classList.toggle('paused',paused);$('bettyMotion').setAttribute('aria-pressed',String(paused));$('bettyMotion').textContent=paused?'Reprendre':'Pause animation';localStorage.setItem('mavik-betty-motion',paused?'paused':'active');}
+  $('bettyMotion').addEventListener('click',()=>setMascotMotion(!$('bettyMascotStage').classList.contains('paused')));
+  setMascotMotion(matchMedia('(prefers-reduced-motion: reduce)').matches||localStorage.getItem('mavik-betty-motion')==='paused');
   if(matchMedia('(max-width: 1280px)').matches){document.querySelector('.betty-panel').classList.add('collapsed');$('bettyToggle').textContent='+';$('bettyToggle').setAttribute('aria-expanded','false');}
 
   initialize();

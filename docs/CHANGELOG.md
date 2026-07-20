@@ -6,6 +6,7 @@ Toutes les évolutions fonctionnelles, architecturales et documentaires signific
 
 ### Ajouté
 - Tableau de bord Avenor / Betty avec cinq espaces : Commercial, Secrétariat, Comptabilité, Produit & développement et Direction.
+- Mascotte officielle Betty intégrée dans l'interface avec une animation douce sur ses patins.
 - Cycle de gestion des opportunités, logiciels, projets, abonnements, factures, dépenses, contrats, tickets de support et réunions.
 - Messagerie interne par canaux d'équipe.
 - Agenda unifié multi-source compatible avec les flux privés Google, Outlook et iCal.
@@ -15,6 +16,7 @@ Toutes les évolutions fonctionnelles, architecturales et documentaires signific
 - Les adresses privées des agendas sont masquées par l'API.
 - Les données d'exemple Avenor sont séparées des données de production GentleCarE.
 - La connexion effective d'un compte agenda reste soumise à l'autorisation explicite de son propriétaire.
+- L'animation peut être mise en pause et respecte automatiquement la préférence système de réduction des mouvements.
 
 ### Tests
 - Ajout d'un test de fumée du profil société de logiciels et de la synchronisation multi-agenda.
