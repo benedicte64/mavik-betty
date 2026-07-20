@@ -11,9 +11,12 @@ const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 const RECOVERY_WINDOW_MS = 15 * 60 * 1000;
 const MAX_RECOVERY_ATTEMPTS = 5;
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_LOCK_MS = 5 * 60 * 1000;
 const DESIGN_LOCK = 'gentlecare-pc-validated-v1';
 const sessions = new Map();
 const recoveryAttempts = new Map();
+const loginAttempts = new Map();
 
 const ROLE_PERMISSIONS = {
   admin: ['*'],
@@ -35,6 +38,7 @@ const DEFAULT_PREFERENCES = Object.freeze({
   notifications: true,
   proactiveAlerts: true,
   confirmBeforeWrite: true,
+  accessMode: 'comfortable',
   preferredHome: 'dashboard',
   updateWindowStart: '18:00',
   updateWindowEnd: '07:30',
@@ -122,6 +126,7 @@ function normalizeUpdateDays(value) {
 function normalizePreferences(input = {}) {
   const answerStyle = ['direct', 'balanced', 'detailed'].includes(input.answerStyle) ? input.answerStyle : DEFAULT_PREFERENCES.answerStyle;
   const preferredHome = ['dashboard', 'company', 'jarvis', 'quotes', 'planning', 'profile'].includes(input.preferredHome) ? input.preferredHome : DEFAULT_PREFERENCES.preferredHome;
+  const accessMode = ['comfortable', 'large', 'contrast', 'simple'].includes(input.accessMode) ? input.accessMode : DEFAULT_PREFERENCES.accessMode;
   return {
     ...input,
     assistantName: String(input.assistantName || DEFAULT_PREFERENCES.assistantName).trim().slice(0, 30) || DEFAULT_PREFERENCES.assistantName,
@@ -131,6 +136,7 @@ function normalizePreferences(input = {}) {
     notifications: input.notifications !== false,
     proactiveAlerts: input.proactiveAlerts !== false,
     confirmBeforeWrite: input.confirmBeforeWrite !== false,
+    accessMode,
     preferredHome,
     updateWindowStart: normalizeTime(input.updateWindowStart, DEFAULT_PREFERENCES.updateWindowStart),
     updateWindowEnd: normalizeTime(input.updateWindowEnd, DEFAULT_PREFERENCES.updateWindowEnd),
@@ -168,6 +174,15 @@ function verifyUserPin(user, pin) {
   return { valid: false, source: '' };
 }
 function setupRequired() { return readUsers().length === 0; }
+function publicProfiles() {
+  return readUsers().filter((user) => user.active !== false).map((user) => ({
+    username: user.username,
+    name: user.name || user.username,
+    role: user.role || 'trainee',
+    mustChoosePin: user.mustChoosePin === true,
+    accessMode: user.preferences?.accessMode || DEFAULT_PREFERENCES.accessMode
+  }));
+}
 function registerTrustedDevice(user, context) {
   const now = new Date().toISOString();
   const current = Array.isArray(user.trustedDevices) ? user.trustedDevices.find((item) => item.id === context.id) : null;
@@ -210,7 +225,7 @@ function createUser(actor, input = {}) {
   if (users.some((user) => user.username === username)) throw Object.assign(new Error('USERNAME_ALREADY_EXISTS'), { status: 409 });
   if (users.some((user) => normalizeEmail(user.email) === email)) throw Object.assign(new Error('EMAIL_ALREADY_EXISTS'), { status: 409 });
   const now = new Date().toISOString();
-  const user = normalizeStoredUser({ id: crypto.randomUUID(), name, username, email, role, active: true, passwordHash: hashPassword(password), legacyPinHashes: [], preferences: DEFAULT_PREFERENCES, trustedDevices: [], createdAt: now, updatedAt: now });
+  const user = normalizeStoredUser({ id: crypto.randomUUID(), name, username, email, role, active: true, passwordHash: hashPassword(password), legacyPinHashes: [], mustChoosePin: true, preferences: DEFAULT_PREFERENCES, trustedDevices: [], createdAt: now, updatedAt: now });
   users.push(user); writeUsers(users); return publicUser(user);
 }
 function listUsers(actor) { requirePermission(actor, 'users.manage'); return readUsers().map((user) => publicUser(user)); }
@@ -232,7 +247,7 @@ function resetPassword(input = {}, context = {}) {
   const users = readUsers(); const index = users.findIndex((item) => item.username === username && item.active !== false);
   if (index < 0 || normalizeEmail(users[index].email) !== email) throw Object.assign(new Error('RECOVERY_IDENTITY_MISMATCH'), { status: 401 });
   const changedAt = new Date().toISOString();
-  users[index] = normalizeStoredUser({ ...users[index], email, passwordHash: hashPassword(password), legacyPinHashes: [], updatedAt: changedAt, passwordResetAt: changedAt, pinUpdatedAt: changedAt });
+  users[index] = normalizeStoredUser({ ...users[index], email, passwordHash: hashPassword(password), legacyPinHashes: [], mustChoosePin: false, updatedAt: changedAt, passwordResetAt: changedAt, pinUpdatedAt: changedAt });
   writeUsers(users);
   const persisted = readUsers().find((item) => item.id === users[index].id);
   if (!persisted || !verifyPassword(password, persisted.passwordHash) || (persisted.legacyPinHashes || []).length) throw Object.assign(new Error('PIN_UPDATE_NOT_PERSISTED'), { status: 500 });
@@ -260,10 +275,25 @@ function login(username, password, context = {}) {
     let payload; try { payload = JSON.parse(String(password || '')); } catch { throw Object.assign(new Error('RECOVERY_INVALID_REQUEST'), { status: 400 }); }
     return recoverAndLogin(payload, ctx);
   }
+  const attemptKey = `${normalizedUsername}|${ctx.id}`;
+  let attempt = loginAttempts.get(attemptKey);
+  if (attempt?.lockedUntil > Date.now()) throw Object.assign(new Error('LOGIN_RATE_LIMITED'), { status: 429 });
+  if (attempt?.lockedUntil && attempt.lockedUntil <= Date.now()) { loginAttempts.delete(attemptKey); attempt = null; }
   const users = readUsers(); const index = users.findIndex((item) => item.username === normalizedUsername && item.active !== false);
-  if (index < 0) throw Object.assign(new Error('INVALID_CREDENTIALS'), { status: 401 });
+  if (index < 0) {
+    const next = { count: Number(attempt?.count || 0) + 1, lockedUntil: 0 };
+    if (next.count >= MAX_LOGIN_ATTEMPTS) next.lockedUntil = Date.now() + LOGIN_LOCK_MS;
+    loginAttempts.set(attemptKey, next);
+    throw Object.assign(new Error(next.lockedUntil ? 'LOGIN_RATE_LIMITED' : 'INVALID_CREDENTIALS'), { status: next.lockedUntil ? 429 : 401 });
+  }
   const verification = verifyUserPin(users[index], password);
-  if (!verification.valid) throw Object.assign(new Error('INVALID_CREDENTIALS'), { status: 401 });
+  if (!verification.valid) {
+    const next = { count: Number(attempt?.count || 0) + 1, lockedUntil: 0 };
+    if (next.count >= MAX_LOGIN_ATTEMPTS) next.lockedUntil = Date.now() + LOGIN_LOCK_MS;
+    loginAttempts.set(attemptKey, next);
+    throw Object.assign(new Error(next.lockedUntil ? 'LOGIN_RATE_LIMITED' : 'INVALID_CREDENTIALS'), { status: next.lockedUntil ? 429 : 401 });
+  }
+  loginAttempts.delete(attemptKey);
   if (verification.source === 'legacy' || (users[index].legacyPinHashes || []).length) users[index] = normalizeStoredUser({ ...users[index], passwordHash: hashPassword(password), legacyPinHashes: [], pinMigratedAt: new Date().toISOString() });
   users[index] = registerTrustedDevice(users[index], ctx); writeUsers(users); return issueSession(users[index], ctx);
 }
@@ -289,7 +319,7 @@ function changeMyPin(actor, input = {}) {
   if (index < 0) throw Object.assign(new Error('AUTH_REQUIRED'), { status: 401 });
   if (!verifyUserPin(users[index], currentPin).valid) throw Object.assign(new Error('CURRENT_PIN_INVALID'), { status: 401 });
   const changedAt = new Date().toISOString();
-  users[index] = normalizeStoredUser({ ...users[index], passwordHash: hashPassword(newPin), legacyPinHashes: [], updatedAt: changedAt, pinUpdatedAt: changedAt });
+  users[index] = normalizeStoredUser({ ...users[index], passwordHash: hashPassword(newPin), legacyPinHashes: [], mustChoosePin: false, updatedAt: changedAt, pinUpdatedAt: changedAt });
   writeUsers(users);
   const persisted = readUsers().find((item) => item.id === users[index].id);
   if (!persisted || !verifyPassword(newPin, persisted.passwordHash)) throw Object.assign(new Error('PIN_UPDATE_NOT_PERSISTED'), { status: 500 });
@@ -347,7 +377,7 @@ function collectionPermission(collection, method) { return `${collection}.${meth
 
 module.exports = {
   USERS_FILE, SESSIONS_FILE, ROLE_PERMISSIONS, DEFAULT_PREFERENCES, DESIGN_LOCK, SESSION_TTL_MS,
-  setupRequired, createInitialAdmin, createUser, listUsers, login, resetPassword, recoverAndLogin,
+  setupRequired, publicProfiles, createInitialAdmin, createUser, listUsers, login, resetPassword, recoverAndLogin,
   updateMyProfile, changeMyPin, setCurrentDevicePin, revokeTrustedDevice, logout,
   tokenFromRequest, authenticate, deviceContextFromRequest, deviceFromRequest,
   normalizeDevice, can, requirePermission, collectionPermission

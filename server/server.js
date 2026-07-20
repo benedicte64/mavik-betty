@@ -171,6 +171,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || `${HOST}:${PORT}`}`);
   try {
     if (req.method === 'GET' && url.pathname === '/login') return servePage(res, 'login.html', 'Connexion introuvable');
+    if (req.method === 'GET' && url.pathname === '/betty-mascot.webp') return servePublicAsset(res, 'betty-mascot.webp');
     if (req.method === 'GET' && url.pathname === '/calendar/mavik.ics' && calendarBridge.tokenValid(url.searchParams.get('token'))) {
       return binary(res, 200, calendarBridge.buildIcs(localStore), 'text/calendar; charset=utf-8', { 'Content-Disposition': 'inline; filename="MAVIK-Agenda.ics"' });
     }
@@ -182,6 +183,7 @@ const server = http.createServer(async (req, res) => {
       emergencyAlert: { enabled: true, synchronized: true }, employeeFlow: { enabled: true }, leavePlanning: { enabled: true, principleThenValidation: true }, morale: { enabled: true }, reputation: { enabled: true }, internalMessaging: { enabled: true, multipleRecipients: true, channels: internalMessaging.CHANNELS.length }, softwareCompany: { enabled: true, areas: softwareCompany.AREAS.length }, continuousVoice: { enabled: true }, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString()
     });
     if (req.method === 'GET' && url.pathname === '/api/auth/status') return json(res, 200, { setupRequired: auth.setupRequired(), device: auth.deviceFromRequest(req), user: auth.authenticate(req) });
+    if (req.method === 'GET' && url.pathname === '/api/auth/profiles') return json(res, 200, { profiles: auth.publicProfiles() });
     if (req.method === 'POST' && url.pathname === '/api/auth/setup') { const body = await readBody(req); const context = auth.deviceContextFromRequest(req); return json(res, 201, { user: auth.createInitialAdmin(body, context), device: context.type }); }
     if (req.method === 'POST' && url.pathname === '/api/auth/login') { const body = await readBody(req); const result = auth.login(body.username, body.password, auth.deviceContextFromRequest(req)); result.user = mergedUser(result.user); return json(res, 200, result, { 'Set-Cookie': sessionCookie(result.token) }); }
     if (req.method === 'POST' && url.pathname === '/api/auth/logout') { auth.logout(auth.tokenFromRequest(req)); return json(res, 200, { ok: true }, { 'Set-Cookie': clearSessionCookie() }); }

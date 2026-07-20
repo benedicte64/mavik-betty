@@ -2,6 +2,18 @@
 
 Toutes les évolutions fonctionnelles, architecturales et documentaires significatives sont consignées ici.
 
+## 2026-07-20 — Betty adaptative et profils métiers
+
+### Ajouté
+- Betty demande dès l’identification, à l’écrit et vocalement, qui veut travailler avec elle.
+- Sélection visuelle du profil, grand pavé numérique, clavier et commande adaptée.
+- À la première connexion, l’utilisateur confirme son identité puis choisit et confirme son propre code.
+- Bouton Profil, quatre adaptations d’interface et ouverture automatique de l’espace correspondant au rôle.
+
+### Sécurité
+- Limitation des tentatives de code avant verrouillage temporaire.
+- Les codes restent dérivés et ne sont jamais conservés en clair.
+
 ## 2026-07-20 — Betty pour société de logiciels
 
 ### Ajouté

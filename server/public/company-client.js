@@ -2,6 +2,15 @@
   'use strict';
 
   const STORAGE_KEY = 'mavik-betty-company-demo-v2';
+  const DEMO_SESSION_KEY = 'mavik_betty_demo_session_v1';
+  const DEMO_ACCOUNTS_KEY = 'mavik_betty_demo_accounts_v1';
+  const ROLE_LABELS = { admin:'Direction', associate:'Direction / associé', commercial:'Équipe commerciale', secretary:'Secrétariat', accountant:'Comptabilité', developer:'Produit & développement', support:'Support', technician:'Technicien', trainee:'Stagiaire' };
+  const ROLE_HOME = { admin:'direction', associate:'direction', commercial:'commercial', secretary:'secretariat', accountant:'accounting', developer:'product', support:'product', technician:'dashboard', trainee:'dashboard' };
+  const ROLE_AREAS = { admin:['direction','commercial','secretariat','accounting','product'], associate:['direction','commercial','secretariat','accounting','product'], commercial:['commercial'], secretary:['secretariat'], accountant:['accounting'], developer:['product'], support:['product'], technician:[], trainee:[] };
+  const DEMO_PROFILES = {
+    benedicte:{ id:'demo-direction', username:'benedicte', name:'Bénédicte', role:'admin' }, lina:{ id:'demo-commercial', username:'lina', name:'Lina', role:'commercial' },
+    emma:{ id:'demo-secretariat', username:'emma', name:'Emma', role:'secretary' }, louis:{ id:'demo-accounting', username:'louis', name:'Louis', role:'accountant' }, nora:{ id:'demo-product', username:'nora', name:'Nora', role:'developer' }
+  };
   const CHANNELS = [
     ['general', 'Toute l’équipe'], ['commercial', 'Commercial'], ['secretariat', 'Secrétariat'],
     ['accounting', 'Comptabilité'], ['product', 'Produit & développement'], ['direction', 'Direction']
@@ -32,6 +41,7 @@
   let messages = [];
   let directory = [];
   let localState = null;
+  let activeAccessMode = 'comfortable';
 
   function defaultState() {
     return {
@@ -102,25 +112,40 @@
     const state = defaultState(); localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return state;
   }
   function saveLocal() { if (localState) localStorage.setItem(STORAGE_KEY, JSON.stringify(localState)); }
+  function readDemoSession() { try { const session=JSON.parse(localStorage.getItem(DEMO_SESSION_KEY)||'null'); return session?.username&&DEMO_PROFILES[session.username]?session:null; } catch { return null; } }
+  function readDemoAccounts() { try { return JSON.parse(localStorage.getItem(DEMO_ACCOUNTS_KEY)||'{}'); } catch { return {}; } }
+  function activateDemoProfile(username) {
+    const profile=DEMO_PROFILES[username]||DEMO_PROFILES.benedicte;localState.user={...profile};
+    localState.directory=(localState.directory||[]).map((person)=>({...person,isSelf:person.id===profile.id}));
+  }
+  function localCan(role, collection) {
+    const permissions={commercial:['opportunities','subscriptions','invoices','contracts','softwareProjects','softwareProducts','meetings','tasks'],secretary:['opportunities','subscriptions','invoices','contracts','supportTickets','meetings','tasks'],accountant:['subscriptions','invoices','expenses','contracts','meetings','tasks'],developer:['softwareProjects','softwareProducts','supportTickets','meetings','tasks'],support:['softwareProjects','softwareProducts','supportTickets','meetings','tasks'],technician:['tasks'],trainee:['tasks']};
+    return ['admin','associate'].includes(role)||(permissions[role]||[]).includes(collection);
+  }
+  function applyAccessMode(mode='comfortable') {
+    activeAccessMode=['comfortable','large','contrast','simple'].includes(mode)?mode:'comfortable';
+    document.body.classList.remove('access-large','access-contrast','access-simple');if(activeAccessMode!=='comfortable')document.body.classList.add(`access-${activeAccessMode}`);
+    document.querySelectorAll('[data-profile-mode]').forEach((button)=>button.setAttribute('aria-pressed',String(button.dataset.profileMode===activeAccessMode)));
+  }
   function sum(items, key) { return (items || []).reduce((total, item) => total + Number(item[key] || 0), 0); }
   function localOverview(state) {
-    const activeOpportunities = state.opportunities.filter((item) => !/gagné|perdu/i.test(item.stage));
-    const activeSubscriptions = state.subscriptions.filter((item) => /actif/i.test(item.status));
-    const unpaid = state.invoices.filter((item) => !/payée|annul/i.test(item.status));
+    const role=state.user?.role||'trainee';const visible=(collection,key=collection)=>localCan(role,collection)?(state[key]||[]):[];
+    const opportunities=visible('opportunities'),subscriptions=visible('subscriptions'),invoices=visible('invoices'),expenses=visible('expenses'),projects=visible('softwareProjects'),products=visible('softwareProducts'),contracts=visible('contracts'),tickets=visible('supportTickets'),meetings=visible('meetings'),tasks=visible('tasks');
+    const activeOpportunities = opportunities.filter((item) => !/gagné|perdu/i.test(item.stage));
+    const activeSubscriptions = subscriptions.filter((item) => /actif/i.test(item.status));
+    const unpaid = invoices.filter((item) => !/payée|annul/i.test(item.status));
     return {
-      profile: { company: 'Avenor', product: 'MAVIK', assistant: 'Betty', mode: 'software-company' }, user: state.user,
-      areas: ['direction', 'commercial', 'secretariat', 'accounting', 'product'].map((id) => ({ id })),
+      profile: { company: 'Avenor', product: 'MAVIK', assistant: 'Betty', mode: 'software-company' }, user: { ...state.user, accessMode:readDemoAccounts()[state.user.username]?.accessMode||'comfortable' },
+      areas: (ROLE_AREAS[role]||[]).map((id) => ({ id })),
       metrics: {
         pipeline: sum(activeOpportunities, 'value'), weightedPipeline: Math.round(activeOpportunities.reduce((total, item) => total + item.value * item.probability / 100, 0)),
         mrr: sum(activeSubscriptions, 'monthlyAmount'), activeSubscriptions: activeSubscriptions.length,
-        unpaidInvoices: sum(unpaid, 'amount'), monthlyExpenses: sum(state.expenses, 'amount'),
-        openProjects: state.softwareProjects.filter((item) => !/termin|annul/i.test(item.status)).length,
-        openTickets: state.supportTickets.filter((item) => !/résolu|fermé/i.test(item.status)).length,
-        pendingTasks: state.tasks.filter((item) => !/termin|annul/i.test(item.status)).length
+        unpaidInvoices: sum(unpaid, 'amount'), monthlyExpenses: sum(expenses, 'amount'),
+        openProjects: projects.filter((item) => !/termin|annul/i.test(item.status)).length,
+        openTickets: tickets.filter((item) => !/résolu|fermé/i.test(item.status)).length,
+        pendingTasks: tasks.filter((item) => !/termin|annul/i.test(item.status)).length
       },
-      opportunities: state.opportunities, subscriptions: state.subscriptions, invoices: state.invoices, expenses: state.expenses,
-      projects: state.softwareProjects, products: state.softwareProducts, contracts: state.contracts, tickets: state.supportTickets,
-      meetings: state.meetings, tasks: state.tasks
+      opportunities, subscriptions, invoices, expenses, projects, products, contracts, tickets, meetings, tasks
     };
   }
 
@@ -146,10 +171,12 @@
       const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 2500);
       overview = await api('/api/company/overview', { signal: controller.signal }); clearTimeout(timer); apiMode = true; await refreshServer();
     } catch {
-      apiMode = false; localState = loadLocal(); overview = localOverview(localState); calendarSettings = { calendars: localState.calendars, configured: localState.calendars.some((item) => item.configured), feedUrl: '' }; messages = localState.messages; directory = localState.directory;
+      apiMode = false;const session=readDemoSession();if(!session){location.replace('login.html?next=company.html');return;}localState = loadLocal();activateDemoProfile(session.username);overview = localOverview(localState); calendarSettings = { calendars: localState.calendars, configured: localState.calendars.some((item) => item.configured), feedUrl: '' }; messages = localState.messages; directory = localState.directory;
     }
+    const allowed=new Set((overview.areas||[]).map((area)=>area.id));const requested=new URLSearchParams(location.search).get('view');const roleHome=ROLE_HOME[overview.user?.role]||'dashboard';currentView=requested&&(requested==='dashboard'||requested==='calendar'||requested==='messages'||allowed.has(requested))?requested:(allowed.has(roleHome)?roleHome:'dashboard');
+    applyAccessMode(overview.user?.accessMode||overview.user?.preferences?.accessMode||'comfortable');$('profileButtonLabel').textContent=overview.user?.name||'Profil';$('bettyAnswer').textContent=`Bonjour ${String(overview.user?.name||'').split(' ')[0]||''}. Je suis prête à travailler avec vous dans votre espace ${ROLE_LABELS[overview.user?.role]||''}.`;
     $('dataMode').textContent = apiMode ? 'MAVIK installé · données sécurisées' : 'Démonstration locale';
-    render(); updateBettyPriority();
+    render(); updateBettyPriority();setTimeout(()=>$('bettyInput').focus(),150);
   }
 
   function metric(label, value, detail, toneValue = 'rgba(103,65,236,.11)') { return `<article class="metric-card" style="--tone:${toneValue}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(detail)}</span></article>`; }
@@ -217,8 +244,9 @@
   }
 
   function render() {
-    const [eyebrow, title] = VIEW_META[currentView] || VIEW_META.dashboard; $('viewEyebrow').textContent = eyebrow; $('viewTitle').textContent = title;
     const allowedAreas = new Set((overview.areas||[]).map((area)=>area.id));
+    if(['commercial','secretariat','accounting','product','direction'].includes(currentView)&&!allowedAreas.has(currentView))currentView=allowedAreas.has(ROLE_HOME[overview.user?.role])?ROLE_HOME[overview.user?.role]:'dashboard';
+    const [eyebrow, title] = VIEW_META[currentView] || VIEW_META.dashboard; $('viewEyebrow').textContent = eyebrow; $('viewTitle').textContent = title;
     document.querySelectorAll('#companyNav [data-view]').forEach((button) => { button.classList.toggle('active', button.dataset.view === currentView); if(['commercial','secretariat','accounting','product','direction'].includes(button.dataset.view))button.hidden=!allowedAreas.has(button.dataset.view); });
     const opportunityButton=document.querySelector('.top-actions [data-action="new-opportunity"]');if(opportunityButton)opportunityButton.hidden=!allowedAreas.has('commercial');
     const renderers = { dashboard:renderDashboard, commercial:renderCommercial, secretariat:renderSecretariat, accounting:renderAccounting, product:renderProduct, direction:renderDirection, calendar:renderCalendar, messages:renderMessages };
@@ -235,6 +263,7 @@
     $('bettyPriority').textContent = priority;
   }
   async function navigate(view) {
+    const allowed=new Set((overview.areas||[]).map((area)=>area.id));if(['commercial','secretariat','accounting','product','direction'].includes(view)&&!allowed.has(view)){toast('Cet espace appartient à un autre rôle.');return;}
     currentView = view; document.querySelector('.company-sidebar').classList.remove('open');
     if (apiMode && view === 'messages') { const data = await api(`/api/internal/messages?limit=150&channel=${encodeURIComponent(activeChannel)}`).catch(()=>({records:[]})); messages = data.records||[]; }
     render();
@@ -317,11 +346,20 @@
   $('bettyForm').addEventListener('submit',(event)=>{event.preventDefault();const input=$('bettyInput');askBetty(input.value);input.value='';});
   document.querySelectorAll('[data-betty]').forEach((button)=>button.addEventListener('click',()=>askBetty(button.dataset.betty)));
   $('mobileMenu').addEventListener('click',()=>document.querySelector('.company-sidebar').classList.toggle('open'));
+  $('profileButton').addEventListener('click',()=>{
+    if(apiMode){location.href='/profile';return;}
+    $('profileDialogName').textContent=overview.user?.name||'Profil';$('profileDialogRole').textContent=ROLE_LABELS[overview.user?.role]||overview.user?.role||'';applyAccessMode(activeAccessMode);$('profileStatus').textContent='';$('profileDialog').showModal();
+  });
+  document.querySelectorAll('[data-profile-mode]').forEach((button)=>button.addEventListener('click',async()=>{
+    const mode=button.dataset.profileMode;applyAccessMode(mode);
+    if(apiMode){try{await api('/api/profile',{method:'PATCH',body:JSON.stringify({preferences:{accessMode:mode}})});$('profileStatus').textContent='Adaptation enregistrée.';}catch(error){$('profileStatus').textContent=error.message;}return;}
+    const accounts=readDemoAccounts(),username=localState.user?.username;if(accounts[username]){accounts[username].accessMode=mode;localStorage.setItem(DEMO_ACCOUNTS_KEY,JSON.stringify(accounts));}overview.user.accessMode=mode;$('profileStatus').textContent='Adaptation enregistrée dans ce profil.';
+  }));
+  $('switchProfile').addEventListener('click',()=>{if(apiMode){location.href='/login';return;}localStorage.removeItem(DEMO_SESSION_KEY);location.replace('login.html?next=company.html&switch=1');});
   $('bettyToggle').addEventListener('click',()=>{const panel=document.querySelector('.betty-panel');const collapsed=panel.classList.toggle('collapsed');$('bettyToggle').textContent=collapsed?'+':'−';$('bettyToggle').setAttribute('aria-expanded',String(!collapsed));});
   function setMascotMotion(paused){$('bettyMascotStage').classList.toggle('paused',paused);$('bettyMotion').setAttribute('aria-pressed',String(paused));$('bettyMotion').textContent=paused?'Reprendre':'Pause animation';localStorage.setItem('mavik-betty-motion',paused?'paused':'active');}
   $('bettyMotion').addEventListener('click',()=>setMascotMotion(!$('bettyMascotStage').classList.contains('paused')));
   setMascotMotion(matchMedia('(prefers-reduced-motion: reduce)').matches||localStorage.getItem('mavik-betty-motion')==='paused');
-  if(matchMedia('(max-width: 1280px)').matches){document.querySelector('.betty-panel').classList.add('collapsed');$('bettyToggle').textContent='+';$('bettyToggle').setAttribute('aria-expanded','false');}
 
   initialize();
 })();

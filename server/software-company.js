@@ -34,7 +34,7 @@ function overview(store, user = {}, can = () => true) {
   const openTickets = tickets.filter((item) => !/résolu|resolu|fermé|ferme/i.test(item.status));
   return {
     profile: { company: 'Avenor', product: 'MAVIK', assistant: 'Betty', mode: 'software-company', dataPolicy: 'demo-or-tenant-only' },
-    user: { id: user.id || '', name: user.name || user.username || '', role: user.role || 'trainee' },
+    user: { id: user.id || '', name: user.name || user.username || '', role: user.role || 'trainee', accessMode: user.preferences?.accessMode || 'comfortable', voiceEnabled: user.preferences?.voiceEnabled !== false },
     areas: accessibleAreas(user),
     metrics: {
       pipeline: sum(activeOpportunities, 'value'),
