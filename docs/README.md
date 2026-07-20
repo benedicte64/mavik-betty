@@ -1,15 +1,29 @@
 # Documentation officielle MAVIK GCOS
 
-Ce dossier centralise la documentation fonctionnelle et technique de MAVIK.
+Ce dossier constitue la référence fonctionnelle, produit et technique de MAVIK.
 
-## Structure prévue
-- Architecture
-- API
-- Base de données
-- UI/UX
-- Workflows
-- Roadmap
-- Releases
-- Spécifications fonctionnelles
+## Point d’entrée obligatoire
 
-Ce dossier constitue la référence officielle du projet.
+Lire d’abord :
+
+- [`00_MAVIK_OS_FOUNDATION.md`](./00_MAVIK_OS_FOUNDATION.md) — vision, dix lois, architecture globale et règles de gouvernance.
+- [`ROADMAP.md`](./ROADMAP.md) — séquence de livraison de v0.30 à v10.x.
+- [`CHANGELOG.md`](./CHANGELOG.md) — décisions et évolutions intégrées.
+
+## Spécifications existantes
+
+- [`MASTER_SPECIFICATION.md`](./MASTER_SPECIFICATION.md) — spécification générale.
+- [`06_PASSEPORT_PATRIMOINE.md`](./06_PASSEPORT_PATRIMOINE.md) — Passeport Patrimoine et pré-diagnostic.
+- [`07_MISSION_CONTROL.md`](./07_MISSION_CONTROL.md) — centre de commandement et briefing du matin.
+
+## Règle documentaire
+
+Toute nouvelle fonctionnalité doit :
+
+1. respecter le document fondateur ;
+2. être décrite dans une spécification ;
+3. être ajoutée à la roadmap lorsqu’elle n’est pas encore livrée ;
+4. être inscrite dans le changelog lorsqu’elle est validée ou implantée ;
+5. comporter des critères d’acceptation vérifiables.
+
+En cas de contradiction, le document fondateur prévaut jusqu’à ce qu’une décision explicite et tracée le modifie.
