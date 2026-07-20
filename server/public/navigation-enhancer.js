@@ -5,6 +5,7 @@
 
   const WORKSHOP_URL = '/generated/workshop/index.html';
   const LEGAL_URL = '/generated/legal/index.html';
+  const COMPANY_URL = '/company';
   const KEEPALIVE_INTERVAL_MS = 3 * 60 * 1000;
   const api = async (url, options = {}) => {
     const response = await fetch(url, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options });
@@ -151,6 +152,7 @@
     }
     const workshopSide = addLink(sideNav, WORKSHOP_URL, '<b>🛠</b>Atelier');
     if (workshopSide) workshopSide.classList.add('workshop-menu');
+    addLink(sideNav, COMPANY_URL, '<b>◈</b>Pilotage société', 'prepend');
 
     const mobile = document.querySelector('.mobile');
     if (mobile) {
@@ -158,6 +160,7 @@
       if (planning) planning.href = '/planning';
       addLink(mobile, '/quotes', '<b>€</b>Devis', 'prepend');
       addLink(mobile, WORKSHOP_URL, '<b>🛠</b>Atelier', 'prepend');
+      addLink(mobile, COMPANY_URL, '<b>◈</b>Société', 'prepend');
     }
     const heroButtons = document.querySelector('.hero-buttons');
     if (heroButtons && !heroButtons.querySelector('a[href="/quotes"]')) {

@@ -20,6 +20,7 @@ const morale = require('./jarvis-morale');
 const clientIntake = require('./client-intake');
 const reputation = require('./reputation');
 const internalMessaging = require('./internal-messaging');
+const softwareCompany = require('./software-company');
 const backup = require('./backup');
 const auth = require('./auth');
 const updater = require('./updater');
@@ -51,9 +52,9 @@ const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN || '';
 const ALLOWED_ORIGIN = process.env.GCOS_ALLOWED_ORIGIN || '*';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const LOGO_DIR = path.join(__dirname, 'assets', 'logo');
-const LOCAL_COLLECTIONS = new Set(['clients', 'vehicles', 'interventions', 'observations', 'communications', 'tasks', 'stockItems', 'quotes', 'quoteRequests', 'documents', 'photos', 'planningBlocks', 'workSessions', 'leaveRequests', 'externalCalendarEvents']);
+const LOCAL_COLLECTIONS = new Set(['clients', 'vehicles', 'interventions', 'observations', 'communications', 'tasks', 'stockItems', 'quotes', 'quoteRequests', 'documents', 'photos', 'planningBlocks', 'workSessions', 'leaveRequests', 'externalCalendarEvents', 'opportunities', 'softwareProducts', 'softwareProjects', 'subscriptions', 'invoices', 'expenses', 'contracts', 'supportTickets', 'meetings']);
 const diagnosticDependencies = { localStore, airtableSync, updater, backup };
-const HOME_PAGES = new Set(['dashboard', 'jarvis', 'quotes', 'planning', 'profile']);
+const HOME_PAGES = new Set(['dashboard', 'company', 'jarvis', 'quotes', 'planning', 'profile']);
 
 function commonHeaders(contentType) {
   return {
@@ -171,27 +172,28 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && url.pathname === '/login') return servePage(res, 'login.html', 'Connexion introuvable');
     if (req.method === 'GET' && url.pathname === '/calendar/mavik.ics' && calendarBridge.tokenValid(url.searchParams.get('token'))) {
-      return binary(res, 200, calendarBridge.buildIcs(localStore), 'text/calendar; charset=utf-8', { 'Content-Disposition': 'inline; filename="MAVIK-GentleCarE.ics"' });
+      return binary(res, 200, calendarBridge.buildIcs(localStore), 'text/calendar; charset=utf-8', { 'Content-Disposition': 'inline; filename="MAVIK-Agenda.ics"' });
     }
     if (req.method === 'GET' && url.pathname === '/health') return json(res, 200, {
       service: 'MAVIK GCOS', version: updater.currentVersion(), multiUser: true, device: auth.deviceFromRequest(req), setupRequired: auth.setupRequired(),
       airtableConfigured: Boolean(AIRTABLE_TOKEN), airtableSync: airtableSync.status(), insights: insightsStore.status(), updater: updater.state(), diagnostics: diagnostics.readLastReport(),
       quoteWorkflow: { enabled: true, depositRate: quoteWorkflow.DEPOSIT_RATE }, quoteStudio: { enabled: true, highValueThreshold: quoteStudio.HIGH_VALUE_THRESHOLD, tariffCatalog: true, motorcycle: true }, quoteRequests: { enabled: true, directionValidation: true },
       planning: { enabled: true, capacity: planning.WORKSHOP_CAPACITY, employeeEarlyStart: true, employeeDelay: false, saturdayClosed: true, sundayClosed: true, calendarBridge: true },
-      emergencyAlert: { enabled: true, synchronized: true }, employeeFlow: { enabled: true }, leavePlanning: { enabled: true, principleThenValidation: true }, morale: { enabled: true }, reputation: { enabled: true }, internalMessaging: { enabled: true, multipleRecipients: true }, continuousVoice: { enabled: true }, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString()
+      emergencyAlert: { enabled: true, synchronized: true }, employeeFlow: { enabled: true }, leavePlanning: { enabled: true, principleThenValidation: true }, morale: { enabled: true }, reputation: { enabled: true }, internalMessaging: { enabled: true, multipleRecipients: true, channels: internalMessaging.CHANNELS.length }, softwareCompany: { enabled: true, areas: softwareCompany.AREAS.length }, continuousVoice: { enabled: true }, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString()
     });
     if (req.method === 'GET' && url.pathname === '/api/auth/status') return json(res, 200, { setupRequired: auth.setupRequired(), device: auth.deviceFromRequest(req), user: auth.authenticate(req) });
     if (req.method === 'POST' && url.pathname === '/api/auth/setup') { const body = await readBody(req); const context = auth.deviceContextFromRequest(req); return json(res, 201, { user: auth.createInitialAdmin(body, context), device: context.type }); }
     if (req.method === 'POST' && url.pathname === '/api/auth/login') { const body = await readBody(req); const result = auth.login(body.username, body.password, auth.deviceContextFromRequest(req)); result.user = mergedUser(result.user); return json(res, 200, result, { 'Set-Cookie': sessionCookie(result.token) }); }
     if (req.method === 'POST' && url.pathname === '/api/auth/logout') { auth.logout(auth.tokenFromRequest(req)); return json(res, 200, { ok: true }, { 'Set-Cookie': clearSessionCookie() }); }
 
-    const protectedPages = ['/', '/alpha', '/iphone', '/jarvis', '/profile', '/quotes', '/planning'];
+    const protectedPages = ['/', '/alpha', '/iphone', '/jarvis', '/profile', '/quotes', '/planning', '/company'];
     if (req.method === 'GET' && protectedPages.includes(url.pathname) && !auth.authenticate(req)) return redirect(res, `/login?next=${encodeURIComponent(url.pathname === '/' ? (auth.deviceFromRequest(req) === 'iphone' ? '/iphone' : '/alpha') : url.pathname)}`);
     const user = requireUser(req);
     const context = auth.deviceContextFromRequest(req);
 
     if (req.method === 'GET' && url.pathname === '/assets/official-logo.png') return binary(res, 200, officialLogoBuffer(), 'image/png');
-    for (const asset of ['jarvis-quote.js', 'reputation-client.js', 'command-dock.js', 'navigation-enhancer.js', 'quote-studio-client.js', 'planning-client.js', 'morale-client.js']) if (req.method === 'GET' && url.pathname === `/assets/${asset}`) return servePublicAsset(res, asset);
+    for (const asset of ['jarvis-quote.js', 'reputation-client.js', 'command-dock.js', 'navigation-enhancer.js', 'quote-studio-client.js', 'planning-client.js', 'morale-client.js', 'company-client.js', 'company.css']) if (req.method === 'GET' && url.pathname === `/assets/${asset}`) return servePublicAsset(res, asset);
+    if (req.method === 'GET' && (url.pathname === '/company.css' || url.pathname === '/company-client.js')) return servePublicAsset(res, url.pathname.slice(1));
     if (req.method === 'GET' && url.pathname.startsWith('/generated/')) return servePublicAsset(res, url.pathname);
 
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha' || url.pathname === '/iphone')) return servePage(res, 'alpha.html', 'MAVIK GCOS introuvable', true);
@@ -199,7 +201,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/profile') return servePage(res, 'profile.html', 'Profil MAVIK introuvable', true);
     if (req.method === 'GET' && url.pathname === '/quotes') return servePage(res, 'quotes.html', 'Atelier devis introuvable', true);
     if (req.method === 'GET' && url.pathname === '/planning') { auth.requirePermission(user, 'interventions.read'); return servePage(res, 'planning.html', 'Planning introuvable', true); }
-    if (req.method === 'GET' && url.pathname === '/calendar/mavik.ics') return binary(res, 200, calendarBridge.buildIcs(localStore), 'text/calendar; charset=utf-8', { 'Content-Disposition': 'attachment; filename="MAVIK-GentleCarE.ics"' });
+    if (req.method === 'GET' && url.pathname === '/company') { requireAnyPermission(user, ['opportunities.read', 'contracts.read', 'invoices.read', 'softwareProjects.read']); return servePage(res, 'company.html', 'Pilotage société introuvable', true); }
+    if (req.method === 'GET' && url.pathname === '/calendar/mavik.ics') return binary(res, 200, calendarBridge.buildIcs(localStore), 'text/calendar; charset=utf-8', { 'Content-Disposition': 'attachment; filename="MAVIK-Agenda.ics"' });
     if (req.method === 'GET' && url.pathname === '/api/auth/me') return json(res, 200, { user: mergedUser(user), device: context.type, deviceContext: context });
 
     if (req.method === 'GET' && url.pathname === '/api/profile') return json(res, 200, { user: mergedUser(user), design: { locked: true, version: auth.DESIGN_LOCK } });
@@ -218,10 +221,13 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/reputation/respond') return json(res, 200, reputation.respond(user, await readBody(req)));
 
     if (req.method === 'GET' && url.pathname === '/api/internal/directory') return json(res, 200, { records: internalMessaging.directory(user) });
-    if (req.method === 'GET' && url.pathname === '/api/internal/messages') return json(res, 200, internalMessaging.list(user, { limit: url.searchParams.get('limit') }));
+    if (req.method === 'GET' && url.pathname === '/api/internal/messages') return json(res, 200, internalMessaging.list(user, { limit: url.searchParams.get('limit'), channel: url.searchParams.get('channel') }));
     if (req.method === 'POST' && url.pathname === '/api/internal/messages') return json(res, 201, { message: internalMessaging.send(user, await readBody(req)) });
     const internalReadRoute = url.pathname.match(/^\/api\/internal\/messages\/([^/]+)\/read$/);
     if (internalReadRoute && req.method === 'PATCH') return json(res, 200, { message: internalMessaging.markRead(user, decodeURIComponent(internalReadRoute[1])) });
+
+    if (req.method === 'GET' && url.pathname === '/api/company/overview') { requireAnyPermission(user, ['opportunities.read', 'contracts.read', 'invoices.read', 'softwareProjects.read']); return json(res, 200, softwareCompany.overview(localStore, user, auth.can)); }
+    if (req.method === 'POST' && url.pathname === '/api/company/demo-seed') return json(res, 201, softwareCompany.seedDemo(localStore, user));
 
     if (req.method === 'GET' && url.pathname === '/api/clients/lookup') { auth.requirePermission(user, 'clients.read'); return json(res, 200, clientIntake.lookup(localStore, url.searchParams.get('q') || '')); }
     if (req.method === 'GET' && url.pathname === '/api/users') return json(res, 200, { users: auth.listUsers(user), roles: auth.ROLE_PERMISSIONS });
@@ -260,9 +266,9 @@ const server = http.createServer(async (req, res) => {
     const studioExpertApproveRoute = url.pathname.match(/^\/api\/quote-studio\/([^/]+)\/expert-approve$/);
     if (studioExpertApproveRoute && req.method === 'POST') { auth.requirePermission(user, 'quotes.write'); return json(res, 200, quoteStudio.approveExpert(localStore, decodeURIComponent(studioExpertApproveRoute[1]), await readBody(req), user)); }
 
-    if (req.method === 'GET' && url.pathname === '/api/calendar/settings') return json(res, 200, calendarBridge.settings(requestOrigin(req)));
+    if (req.method === 'GET' && url.pathname === '/api/calendar/settings') return json(res, 200, calendarBridge.settings(requestOrigin(req), user));
     if (req.method === 'PATCH' && url.pathname === '/api/calendar/settings') { const body = await readBody(req); return json(res, 200, calendarBridge.configure({ ...body, origin: requestOrigin(req) }, user)); }
-    if (req.method === 'POST' && url.pathname === '/api/calendar/sync') { if (!['admin', 'associate'].includes(user.role)) throw Object.assign(new Error('CALENDAR_DIRECTION_REQUIRED'), { status: 403 }); return json(res, 200, await calendarBridge.sync(localStore)); }
+    if (req.method === 'POST' && url.pathname === '/api/calendar/sync') { if (!['admin', 'associate'].includes(user.role)) throw Object.assign(new Error('CALENDAR_DIRECTION_REQUIRED'), { status: 403 }); return json(res, 200, await calendarBridge.sync(localStore, user)); }
 
     if (req.method === 'GET' && url.pathname === '/api/planning/overview') { auth.requirePermission(user, 'interventions.read'); return json(res, 200, planning.overview(localStore, { from: url.searchParams.get('from'), days: url.searchParams.get('days') })); }
     if (req.method === 'POST' && url.pathname === '/api/planning/propose') { auth.requirePermission(user, 'interventions.write'); return json(res, 200, { proposal: planning.propose(localStore, await readBody(req)) }); }

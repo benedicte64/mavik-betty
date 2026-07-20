@@ -1,6 +1,6 @@
-# Operating System
+# MAVIK — Avenor / Betty
 
-MVP opérationnel de MAVIK , développé et versionné directement dans GitHub.
+MAVIK est le moteur de pilotage métier développé par Avenor. Betty est son assistante de démonstration pour une société de création et de vente de logiciels.
 
 ## Mémoire partagée — à lire en premier
 
@@ -27,27 +27,24 @@ Toute évolution importante doit rester conforme au document fondateur ou faire 
 
 ## Fonctionnalités disponibles
 
-- Tableau de bord Direction
-- Tâches prioritaires avec validation
-- Devis Audi S5 V8 à valider ou corriger
-- Suivi des commandes Intelblast, France Air et Dinitrol
-- Mode Atelier pour la Mini blanche 2005
-- Checklist, chronomètre, notes et photos depuis un iPhone
-- Recherche globale
-- Commande vocale MAVIK lorsque le navigateur la prend en charge
-- Journal automatique des actions
-- Sauvegarde locale dans le navigateur
+- Tableau de bord Direction avec pipeline, revenus récurrents, factures et projets.
+- Espaces Commercial, Secrétariat, Comptabilité et Produit & développement.
+- Gestion des opportunités, logiciels, abonnements, contrats, factures et support.
+- Discussion interne par canaux d'équipe.
+- Agenda unifié Google, Outlook et iCal.
+- Assistant Betty pour retrouver une information et ouvrir le bon espace.
+- Sauvegarde locale dans le navigateur en démonstration, ou stockage serveur avec droits par rôle.
 
 ## Déploiement GitHub Pages
 
-Le workflow `.github/workflows/deploy-pages.yml` publie automatiquement l’application à chaque modification de la branche `main`.
+Le workflow `.github/workflows/pages.yml` publie automatiquement l’application à chaque modification de la branche `main`.
 
 Dans GitHub :
 
 1. Ouvrir **Settings**.
 2. Ouvrir **Pages**.
 3. Dans **Build and deployment**, sélectionner **GitHub Actions**.
-4. Ouvrir l’onglet **Actions** et relancer le workflow `Deploy GCOS to GitHub Pages` si nécessaire.
+4. Ouvrir l’onglet **Actions** et relancer le workflow de publication GitHub Pages si nécessaire.
 
 L’adresse générée sera affichée dans le workflow et dans la section **Deployments** du dépôt.
 
@@ -71,9 +68,11 @@ python3 -m http.server 4173
 
 Ouvrir ensuite `http://localhost:4173`.
 
-## État technique
+## Agendas
 
-Cette première version ne transmet aucune donnée sensible à un serveur. Les données sont conservées dans `localStorage` sur l’appareil utilisé.
+L'interface accepte plusieurs agendas Google, Outlook ou iCal. Pour une installation serveur, utiliser une URL iCal privée ou une autorisation de compte. Les URL privées sont masquées dans l'API et ne doivent jamais être ajoutées au dépôt.
+
+En mode GitHub Pages, les données de démonstration restent dans `localStorage` sur l'appareil utilisé.
 
 ## Prochains blocs
 

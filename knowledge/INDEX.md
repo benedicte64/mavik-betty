@@ -12,6 +12,12 @@
 7. `adr/`
 8. `roadmap/`
 
+## Modules actifs
+
+- [`modules/software-company-operations.md`](./modules/software-company-operations.md) — organisation Avenor / Betty, rôles, discussion interne et agenda unifié.
+- [`adr/ADR-001-demo-profile.md`](./adr/ADR-001-demo-profile.md) — séparation des profils Betty et Jarvis.
+- [`adr/ADR-0002-software-company-profile.md`](./adr/ADR-0002-software-company-profile.md) — décision d'architecture du pilotage logiciel.
+
 ## Règle de chargement
 
 Au démarrage, MAVIK charge tous les fichiers Markdown présents dans ce dossier et ses sous-dossiers. Le contexte complet n’est pas injecté dans chaque réponse : le Knowledge Manager sélectionne d’abord les documents pertinents selon les mots-clés de la demande.

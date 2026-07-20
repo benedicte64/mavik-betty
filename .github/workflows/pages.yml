@@ -15,7 +15,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate MAVIK before production
+        run: |
+          npm run check
+          node tests/quote-workflow-smoke.js
+          node tests/reputation-client-intake-smoke.js
+          node tests/jarvis-intelligence-smoke.js
+          node tests/command-dock-messaging-smoke.js
+          node tests/software-company-calendar-smoke.js
+          node tests/intervention-report-smoke.js
+          node tests/quote-studio-planning-smoke.js
+          node tests/employee-flow-leave-morale-smoke.js
+          node tests/emergency-quote-request-calendar-smoke.js
+          node tests/workshop-online-smoke.js
+          node tests/continuous-session-legal-admin-smoke.js
+          node tests/photo-industrial-delivery-workshop-smoke.js
+
   deploy:
+    needs: validate
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

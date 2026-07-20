@@ -17,9 +17,13 @@ const recoveryAttempts = new Map();
 
 const ROLE_PERMISSIONS = {
   admin: ['*'],
-  associate: ['dashboard.read','clients.read','clients.write','vehicles.read','vehicles.write','interventions.read','interventions.write','observations.read','observations.write','communications.read','communications.write','tasks.read','tasks.write','stocks.read','stocks.write','quotes.read','quotes.write','documents.read','documents.write','photos.read','photos.write','jarvis.use'],
+  associate: ['dashboard.read','clients.read','clients.write','vehicles.read','vehicles.write','interventions.read','interventions.write','observations.read','observations.write','communications.read','communications.write','tasks.read','tasks.write','stocks.read','stocks.write','quotes.read','quotes.write','documents.read','documents.write','photos.read','photos.write','opportunities.read','opportunities.write','softwareProducts.read','softwareProducts.write','softwareProjects.read','softwareProjects.write','subscriptions.read','subscriptions.write','invoices.read','invoices.write','expenses.read','expenses.write','contracts.read','contracts.write','supportTickets.read','supportTickets.write','meetings.read','meetings.write','externalCalendarEvents.read','jarvis.use'],
   technician: ['dashboard.read','clients.read','vehicles.read','interventions.read','interventions.write','observations.read','observations.write','tasks.read','tasks.write','documents.read','documents.write','photos.read','photos.write','jarvis.use'],
-  commercial: ['dashboard.read','clients.read','clients.write','vehicles.read','vehicles.write','interventions.read','communications.read','communications.write','tasks.read','tasks.write','quotes.read','quotes.write','documents.read','documents.write','jarvis.use'],
+  commercial: ['dashboard.read','clients.read','clients.write','vehicles.read','vehicles.write','interventions.read','communications.read','communications.write','tasks.read','tasks.write','quotes.read','quotes.write','documents.read','documents.write','opportunities.read','opportunities.write','softwareProducts.read','softwareProjects.read','subscriptions.read','subscriptions.write','invoices.read','contracts.read','meetings.read','meetings.write','externalCalendarEvents.read','jarvis.use'],
+  secretary: ['dashboard.read','clients.read','clients.write','communications.read','communications.write','tasks.read','tasks.write','documents.read','documents.write','opportunities.read','subscriptions.read','invoices.read','contracts.read','contracts.write','supportTickets.read','meetings.read','meetings.write','externalCalendarEvents.read','jarvis.use'],
+  accountant: ['dashboard.read','clients.read','tasks.read','tasks.write','documents.read','documents.write','opportunities.read','subscriptions.read','subscriptions.write','invoices.read','invoices.write','expenses.read','expenses.write','contracts.read','meetings.read','externalCalendarEvents.read','jarvis.use'],
+  developer: ['dashboard.read','tasks.read','tasks.write','documents.read','documents.write','softwareProducts.read','softwareProducts.write','softwareProjects.read','softwareProjects.write','supportTickets.read','supportTickets.write','meetings.read','meetings.write','externalCalendarEvents.read','jarvis.use'],
+  support: ['dashboard.read','clients.read','communications.read','communications.write','tasks.read','tasks.write','documents.read','documents.write','softwareProducts.read','softwareProjects.read','supportTickets.read','supportTickets.write','meetings.read','meetings.write','externalCalendarEvents.read','jarvis.use'],
   trainee: ['dashboard.read','vehicles.read','interventions.read','tasks.read','photos.read','photos.write','jarvis.use']
 };
 
@@ -117,7 +121,7 @@ function normalizeUpdateDays(value) {
 }
 function normalizePreferences(input = {}) {
   const answerStyle = ['direct', 'balanced', 'detailed'].includes(input.answerStyle) ? input.answerStyle : DEFAULT_PREFERENCES.answerStyle;
-  const preferredHome = ['dashboard', 'jarvis', 'quotes', 'planning', 'profile'].includes(input.preferredHome) ? input.preferredHome : DEFAULT_PREFERENCES.preferredHome;
+  const preferredHome = ['dashboard', 'company', 'jarvis', 'quotes', 'planning', 'profile'].includes(input.preferredHome) ? input.preferredHome : DEFAULT_PREFERENCES.preferredHome;
   return {
     ...input,
     assistantName: String(input.assistantName || DEFAULT_PREFERENCES.assistantName).trim().slice(0, 30) || DEFAULT_PREFERENCES.assistantName,

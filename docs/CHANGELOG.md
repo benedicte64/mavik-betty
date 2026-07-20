@@ -2,6 +2,26 @@
 
 Toutes les évolutions fonctionnelles, architecturales et documentaires significatives sont consignées ici.
 
+## 2026-07-20 — Betty pour société de logiciels
+
+### Ajouté
+- Tableau de bord Avenor / Betty avec cinq espaces : Commercial, Secrétariat, Comptabilité, Produit & développement et Direction.
+- Cycle de gestion des opportunités, logiciels, projets, abonnements, factures, dépenses, contrats, tickets de support et réunions.
+- Messagerie interne par canaux d'équipe.
+- Agenda unifié multi-source compatible avec les flux privés Google, Outlook et iCal.
+- Rôles dédiés commercial, secrétariat, comptabilité, développement et support.
+
+### Sécurité et données
+- Les adresses privées des agendas sont masquées par l'API.
+- Les données d'exemple Avenor sont séparées des données de production GentleCarE.
+- La connexion effective d'un compte agenda reste soumise à l'autorisation explicite de son propriétaire.
+
+### Tests
+- Ajout d'un test de fumée du profil société de logiciels et de la synchronisation multi-agenda.
+- Extension des tests de messagerie aux canaux internes.
+- Suppression de l'ancien workflow GitHub Pages en double, qui pouvait annuler le déploiement officiel.
+- Validation complète obligatoire avant toute publication GitHub Pages sur `main`.
+
 ## 2026-07-20 — Fondation MAVIK OS
 
 ### Ajouté

@@ -19,9 +19,9 @@ try {
   ], null, 2));
   fs.writeFileSync(messaging.MESSAGE_FILE, '[]');
 
-  const david = { id: 'u1', name: 'David Bourasseau' };
-  const bene = { id: 'u2', name: 'Bénédicte Lopez' };
-  const technician = { id: 'u4', name: 'Technicien Atelier' };
+  const david = { id: 'u1', name: 'David Bourasseau', role: 'admin' };
+  const bene = { id: 'u2', name: 'Bénédicte Lopez', role: 'associate' };
+  const technician = { id: 'u4', name: 'Technicien Atelier', role: 'technician' };
   const directory = messaging.directory(david);
   assert.equal(directory.length, 3);
   assert.equal(directory.find((item) => item.id === 'u1').isSelf, true);
@@ -32,19 +32,29 @@ try {
   assert.equal(sent.toUserId, 'u2');
   assert.deepEqual(sent.toUserIds, ['u2']);
 
-  const multi = messaging.send(david, { toUserIds: ['u2', 'u4'], subject: 'Message groupé', body: 'Ce message est adressé à plusieurs employés.' });
+  const multi = messaging.send(david, { toUserIds: ['u2', 'u4'], channel: 'commercial', subject: 'Message groupé', body: 'Ce message est adressé à plusieurs employés.' });
+  assert.equal(multi.channel, 'commercial');
   assert.deepEqual(new Set(multi.toUserIds), new Set(['u2', 'u4']));
   assert.equal(messaging.list(bene).records.some((item) => item.id === multi.id), true);
+  assert.equal(messaging.list(bene, { channel: 'commercial' }).records.length, 1);
+  assert.equal(messaging.list(bene, { channel: 'accounting' }).records.length, 0);
   assert.equal(messaging.list(technician).records.some((item) => item.id === multi.id), true);
 
+  const directionMessage = messaging.send(david, { toUserIds: ['u2', 'u4'], channel: 'direction', body: 'Décision réservée à la direction.' });
+  assert.deepEqual(directionMessage.toUserIds, ['u2']);
+  assert.equal(messaging.list(bene, { channel: 'direction' }).records.length, 1);
+  assert.throws(() => messaging.list(technician, { channel: 'direction' }), /MESSAGE_CHANNEL_FORBIDDEN/);
+  assert.throws(() => messaging.send(technician, { toUserId: 'u1', channel: 'direction', body: 'Interdit' }), /MESSAGE_CHANNEL_FORBIDDEN/);
+
   const beneInbox = messaging.list(bene);
-  assert.equal(beneInbox.records.length, 2);
-  assert.equal(beneInbox.unread, 2);
+  assert.equal(beneInbox.records.length, 3);
+  assert.equal(beneInbox.unread, 3);
 
   messaging.markRead(bene, sent.id);
   messaging.markRead(bene, multi.id);
+  messaging.markRead(bene, directionMessage.id);
   assert.equal(messaging.list(bene).unread, 0);
-  assert.equal(messaging.list(david).records.length, 2);
+  assert.equal(messaging.list(david).records.length, 3);
 
   assert.throws(() => messaging.send(david, { toUserIds: ['u2', 'unknown'], body: 'Impossible' }), /MESSAGE_RECIPIENT_NOT_FOUND/);
   assert.throws(() => messaging.send(david, { toUserId: 'u2', body: '' }), /MESSAGE_BODY_REQUIRED/);

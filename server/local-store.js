@@ -9,7 +9,9 @@ const DATA_FILE = path.join(DATA_DIR, 'gcos-local.json');
 const EMPTY_DB = {
   clients: [], vehicles: [], interventions: [], observations: [], communications: [],
   tasks: [], stockItems: [], quotes: [], quoteRequests: [], documents: [], photos: [], planningBlocks: [],
-  workSessions: [], leaveRequests: [], externalCalendarEvents: [], events: []
+  workSessions: [], leaveRequests: [], externalCalendarEvents: [],
+  opportunities: [], softwareProducts: [], softwareProjects: [], subscriptions: [],
+  invoices: [], expenses: [], contracts: [], supportTickets: [], meetings: [], events: []
 };
 const DEFAULT_CHECKLIST = {
   receptionPhotos: false, mileageRecorded: false, clientApproval: false,
@@ -172,6 +174,82 @@ function normalize(collection, input = {}, current = {}) {
     clean.status = String(input.status ?? current.status ?? 'CONFIRMED').trim();
     clean.blocksWorkshop = input.blocksWorkshop === undefined ? Boolean(current.blocksWorkshop) : input.blocksWorkshop === true || input.blocksWorkshop === 'on';
   }
+  if (collection === 'opportunities') {
+    clean.company = String(input.company ?? current.company ?? '').trim();
+    clean.contact = String(input.contact ?? current.contact ?? '').trim();
+    clean.product = String(input.product ?? current.product ?? 'MAVIK').trim();
+    clean.stage = String(input.stage ?? current.stage ?? 'Prospect').trim();
+    clean.value = Number(input.value ?? current.value ?? 0) || 0;
+    clean.probability = Math.max(0, Math.min(100, Number(input.probability ?? current.probability ?? 20) || 0));
+    clean.owner = String(input.owner ?? current.owner ?? '').trim();
+    clean.nextAction = String(input.nextAction ?? current.nextAction ?? '').trim();
+    clean.dueDate = String(input.dueDate ?? current.dueDate ?? '').slice(0, 10);
+  }
+  if (collection === 'softwareProducts') {
+    clean.name = String(input.name ?? current.name ?? '').trim();
+    clean.version = String(input.version ?? current.version ?? '0.1.0').trim();
+    clean.status = String(input.status ?? current.status ?? 'En conception').trim();
+    clean.owner = String(input.owner ?? current.owner ?? '').trim();
+    clean.monthlyPrice = Number(input.monthlyPrice ?? current.monthlyPrice ?? 0) || 0;
+  }
+  if (collection === 'softwareProjects') {
+    clean.name = String(input.name ?? current.name ?? '').trim();
+    clean.product = String(input.product ?? current.product ?? '').trim();
+    clean.status = String(input.status ?? current.status ?? 'À planifier').trim();
+    clean.progress = Math.max(0, Math.min(100, Number(input.progress ?? current.progress ?? 0) || 0));
+    clean.owner = String(input.owner ?? current.owner ?? '').trim();
+    clean.targetDate = String(input.targetDate ?? current.targetDate ?? '').slice(0, 10);
+    clean.priority = String(input.priority ?? current.priority ?? 'Normale').trim();
+  }
+  if (collection === 'subscriptions') {
+    clean.customer = String(input.customer ?? current.customer ?? '').trim();
+    clean.plan = String(input.plan ?? current.plan ?? '').trim();
+    clean.monthlyAmount = Number(input.monthlyAmount ?? current.monthlyAmount ?? 0) || 0;
+    clean.status = String(input.status ?? current.status ?? 'Essai').trim();
+    clean.renewalDate = String(input.renewalDate ?? current.renewalDate ?? '').slice(0, 10);
+    clean.owner = String(input.owner ?? current.owner ?? '').trim();
+  }
+  if (collection === 'invoices') {
+    clean.customer = String(input.customer ?? current.customer ?? '').trim();
+    clean.amount = Number(input.amount ?? current.amount ?? 0) || 0;
+    clean.status = String(input.status ?? current.status ?? 'Brouillon').trim();
+    clean.issueDate = String(input.issueDate ?? current.issueDate ?? '').slice(0, 10);
+    clean.dueDate = String(input.dueDate ?? current.dueDate ?? '').slice(0, 10);
+    clean.paidAt = String(input.paidAt ?? current.paidAt ?? '').trim();
+  }
+  if (collection === 'expenses') {
+    clean.supplier = String(input.supplier ?? current.supplier ?? '').trim();
+    clean.label = String(input.label ?? current.label ?? '').trim();
+    clean.amount = Number(input.amount ?? current.amount ?? 0) || 0;
+    clean.status = String(input.status ?? current.status ?? 'À valider').trim();
+    clean.dueDate = String(input.dueDate ?? current.dueDate ?? '').slice(0, 10);
+    clean.category = String(input.category ?? current.category ?? '').trim();
+  }
+  if (collection === 'contracts') {
+    clean.title = String(input.title ?? current.title ?? '').trim();
+    clean.customer = String(input.customer ?? current.customer ?? '').trim();
+    clean.status = String(input.status ?? current.status ?? 'À préparer').trim();
+    clean.owner = String(input.owner ?? current.owner ?? '').trim();
+    clean.renewalDate = String(input.renewalDate ?? current.renewalDate ?? '').slice(0, 10);
+    clean.value = Number(input.value ?? current.value ?? 0) || 0;
+  }
+  if (collection === 'supportTickets') {
+    clean.title = String(input.title ?? current.title ?? '').trim();
+    clean.customer = String(input.customer ?? current.customer ?? '').trim();
+    clean.status = String(input.status ?? current.status ?? 'Nouveau').trim();
+    clean.priority = String(input.priority ?? current.priority ?? 'Normale').trim();
+    clean.assignee = String(input.assignee ?? current.assignee ?? '').trim();
+    clean.product = String(input.product ?? current.product ?? 'MAVIK').trim();
+  }
+  if (collection === 'meetings') {
+    clean.title = String(input.title ?? current.title ?? '').trim();
+    clean.start = String(input.start ?? current.start ?? '').trim();
+    clean.end = String(input.end ?? current.end ?? clean.start).trim();
+    clean.department = String(input.department ?? current.department ?? 'direction').trim();
+    clean.attendees = Array.isArray(input.attendees ?? current.attendees) ? [...new Set((input.attendees ?? current.attendees).map(String).filter(Boolean))] : [];
+    clean.location = String(input.location ?? current.location ?? '').trim();
+    clean.status = String(input.status ?? current.status ?? 'Confirmé').trim();
+  }
   return clean;
 }
 function list(collection) {
@@ -189,6 +267,10 @@ function create(collection, input) {
   if (collection === 'quotes') normalized.number = nextNumber(db.quotes, `DEV-${year}-`);
   if (collection === 'quoteRequests') normalized.number = nextNumber(db.quoteRequests, `DD-${year}-`);
   if (collection === 'leaveRequests') normalized.number = nextNumber(db.leaveRequests, `CONGE-${year}-`);
+  if (collection === 'opportunities') normalized.number = nextNumber(db.opportunities, `OPP-${year}-`);
+  if (collection === 'invoices') normalized.number = nextNumber(db.invoices, `FAC-${year}-`);
+  if (collection === 'contracts') normalized.number = nextNumber(db.contracts, `CTR-${year}-`);
+  if (collection === 'supportTickets') normalized.number = nextNumber(db.supportTickets, `TICKET-${year}-`);
   const record = { id: crypto.randomUUID(), ...normalized, createdAt: now, updatedAt: now };
   db[collection].unshift(record);
   db.events.unshift({ id: crypto.randomUUID(), type: `${collection}.created`, recordId: record.id, interventionId: collection === 'interventions' ? record.id : record.interventionId || '', createdAt: now });
@@ -232,6 +314,12 @@ function summary() {
     todayInterventions: db.interventions.filter((item) => item.scheduledDate === today).length,
     pendingTasks: db.tasks.filter((item) => item.status !== 'Terminée').length,
     pendingQuotes: db.quotes.filter((item) => ['Brouillon', 'Envoyé', 'À relancer', 'À valider', 'Expertise à décider'].includes(item.status)).length,
+    pipelineValue: db.opportunities.filter((item) => !/perdu|gagné/i.test(item.stage)).reduce((sum, item) => sum + Number(item.value || 0), 0),
+    activeSubscriptions: db.subscriptions.filter((item) => /actif|active/i.test(item.status)).length,
+    monthlyRecurringRevenue: db.subscriptions.filter((item) => /actif|active/i.test(item.status)).reduce((sum, item) => sum + Number(item.monthlyAmount || 0), 0),
+    openSoftwareProjects: db.softwareProjects.filter((item) => !/termin|livr|annul/i.test(item.status)).length,
+    openSupportTickets: db.supportTickets.filter((item) => !/résolu|resolu|fermé|ferme/i.test(item.status)).length,
+    unpaidInvoices: db.invoices.filter((item) => !/payée|payee|annul/i.test(item.status)).reduce((sum, item) => sum + Number(item.amount || 0), 0),
     lowStock: db.stockItems.filter((item) => item.alertThreshold > 0 && item.quantity <= item.alertThreshold),
     pendingObservations: db.observations.filter((item) => item.decision === 'En attente').length,
     recentEvents: db.events.slice(0, 30)

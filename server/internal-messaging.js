@@ -8,6 +8,8 @@ const auth = require('./auth');
 const DATA_DIR = path.join(__dirname, 'data');
 const MESSAGE_FILE = path.join(DATA_DIR, 'internal-messages.json');
 const MAX_MESSAGES = 2000;
+const CHANNELS = Object.freeze(['general', 'commercial', 'secretariat', 'accounting', 'product', 'direction', 'direct']);
+const DIRECTION_ROLES = new Set(['admin', 'associate']);
 
 function ensureFile() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -50,9 +52,22 @@ function visibleTo(actor, message) {
   const recipients = recipientIds(message);
   return message.fromUserId === actor.id || recipients.includes(actor.id) || recipients.includes('*');
 }
+function normalizeChannel(value) {
+  const channel = String(value || 'general').trim().toLowerCase();
+  return CHANNELS.includes(channel) ? channel : 'general';
+}
+function channelAllowed(actor = {}, channel = 'general') {
+  return normalizeChannel(channel) !== 'direction' || DIRECTION_ROLES.has(actor.role);
+}
 function list(actor, options = {}) {
   const limit = Math.max(1, Math.min(200, Number(options.limit || 100)));
-  const visible = readMessages().filter((message) => visibleTo(actor, message)).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  const requestedChannel = options.channel ? normalizeChannel(options.channel) : '';
+  if (requestedChannel && !channelAllowed(actor, requestedChannel)) throw Object.assign(new Error('MESSAGE_CHANNEL_FORBIDDEN'), { status: 403 });
+  const visible = readMessages()
+    .filter((message) => visibleTo(actor, message))
+    .filter((message) => channelAllowed(actor, message.channel))
+    .filter((message) => !requestedChannel || normalizeChannel(message.channel) === requestedChannel)
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   const unread = visible.filter((message) => message.fromUserId !== actor.id && !message.readBy?.includes(actor.id)).length;
   return { records: visible.slice(0, limit), unread };
 }
@@ -70,18 +85,22 @@ function send(actor, input = {}) {
   const subject = String(input.subject || '').trim().slice(0, 120);
   if (!body) throw Object.assign(new Error('MESSAGE_BODY_REQUIRED'), { status: 400 });
   const users = readDirectory();
-  const toUserIds = normalizeRecipients(input, users, actor);
-  const recipients = users.filter((user) => toUserIds.includes(user.id));
+  const channel = normalizeChannel(input.channel || 'general');
+  if (!channelAllowed(actor, channel)) throw Object.assign(new Error('MESSAGE_CHANNEL_FORBIDDEN'), { status: 403 });
+  const eligibleUsers = channel === 'direction' ? users.filter((user) => DIRECTION_ROLES.has(user.role)) : users;
+  const toUserIds = normalizeRecipients(input, users, actor).filter((id) => eligibleUsers.some((user) => user.id === id));
+  const recipients = eligibleUsers.filter((user) => toUserIds.includes(user.id));
   if (!recipients.length) throw Object.assign(new Error('MESSAGE_RECIPIENT_REQUIRED'), { status: 400 });
   const now = new Date().toISOString();
   const message = {
     id: crypto.randomUUID(),
     fromUserId: actor.id,
     fromName: actor.name || actor.username || 'Utilisateur MAVIK',
-    toUserId: toUserIds.length === users.filter((user) => user.id !== actor.id).length ? '*' : (toUserIds[0] || ''),
+    toUserId: toUserIds.length === eligibleUsers.filter((user) => user.id !== actor.id).length ? '*' : (toUserIds[0] || ''),
     toUserIds,
     toName: recipients.length === 1 ? recipients[0].name : recipients.map((user) => user.name).join(', '),
     toNames: recipients.map((user) => user.name),
+    channel: input.channel ? channel : (toUserIds.length === 1 ? 'direct' : 'general'),
     subject,
     body: body.slice(0, 5000),
     priority: input.priority === 'urgent' ? 'urgent' : 'normal',
@@ -96,7 +115,7 @@ function send(actor, input = {}) {
 }
 function markRead(actor, id) {
   const messages = readMessages();
-  const index = messages.findIndex((message) => message.id === id && visibleTo(actor, message));
+  const index = messages.findIndex((message) => message.id === id && visibleTo(actor, message) && channelAllowed(actor, message.channel));
   if (index < 0) throw Object.assign(new Error('MESSAGE_NOT_FOUND'), { status: 404 });
   const readBy = new Set(Array.isArray(messages[index].readBy) ? messages[index].readBy : []);
   readBy.add(actor.id);
@@ -105,4 +124,4 @@ function markRead(actor, id) {
   return messages[index];
 }
 
-module.exports = { MESSAGE_FILE, directory, list, send, markRead, visibleTo };
+module.exports = { MESSAGE_FILE, CHANNELS, directory, list, send, markRead, visibleTo, channelAllowed };

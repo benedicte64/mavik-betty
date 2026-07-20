@@ -34,6 +34,8 @@ jobs:
         run: node tests/jarvis-intelligence-smoke.js
       - name: Command dock internal messaging smoke test
         run: node tests/command-dock-messaging-smoke.js
+      - name: Software company and multi-calendar smoke test
+        run: node tests/software-company-calendar-smoke.js
       - name: Intervention reference report smoke test
         run: node tests/intervention-report-smoke.js
       - name: Quote studio and planning smoke test

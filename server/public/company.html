@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#5b35e8">
+  <title>Betty — MAVIK pour Avenor</title>
+  <link rel="stylesheet" href="company.css">
+  <style>
+    .betty-head .icon-button{display:none;margin-left:auto}.dialog-fields input[type="checkbox"]{width:auto;padding:0;vertical-align:middle}
+    @media(max-width:1280px){.betty-head .icon-button{display:block}.betty-panel{transition:.2s}.betty-panel.collapsed{height:78px;overflow:hidden}.betty-panel.collapsed>:not(.betty-head){display:none}}
+  </style>
+</head>
+<body>
+  <div class="company-app">
+    <aside class="company-sidebar" aria-label="Navigation principale">
+      <div class="wordmark"><span class="mark">M</span><div><strong>MAVIK</strong><small>Betty · Avenor</small></div></div>
+      <nav id="companyNav">
+        <button class="active" data-view="dashboard"><span>⌂</span>Vue d’ensemble</button>
+        <button data-view="commercial"><span>↗</span>Commercial</button>
+        <button data-view="secretariat"><span>▤</span>Secrétariat</button>
+        <button data-view="accounting"><span>€</span>Comptabilité</button>
+        <button data-view="product"><span>◇</span>Produit & développement</button>
+        <button data-view="direction"><span>◎</span>Direction</button>
+        <button data-view="calendar"><span>▣</span>Agenda unifié</button>
+        <button data-view="messages"><span>✦</span>Discussion interne <b id="unreadBadge"></b></button>
+      </nav>
+      <div class="tenant"><span class="status-dot"></span><div><strong>Avenor</strong><small id="dataMode">Démonstration locale</small></div></div>
+    </aside>
+
+    <section class="company-main">
+      <header class="company-topbar">
+        <button class="mobile-menu" id="mobileMenu" aria-label="Ouvrir le menu">☰</button>
+        <div><div class="eyebrow" id="viewEyebrow">Pilotage de l’entreprise</div><h1 id="viewTitle">Vue d’ensemble</h1></div>
+        <div class="top-actions">
+          <button class="soft" data-action="new-message">Message interne</button>
+          <button class="primary" data-action="new-opportunity">+ Nouvelle opportunité</button>
+        </div>
+      </header>
+      <main id="workspace" tabindex="-1"><div class="loading">Betty prépare votre espace…</div></main>
+    </section>
+
+    <aside class="betty-panel" aria-label="Assistante Betty">
+      <div class="betty-head"><div class="betty-avatar" aria-hidden="true">B</div><div><h2>Betty</h2><span><i></i> Assistante en ligne</span></div><button class="icon-button" id="bettyToggle" aria-label="Afficher ou réduire Betty" aria-expanded="true" title="Afficher ou réduire Betty">−</button></div>
+      <div class="betty-brief" id="bettyAnswer">Je rassemble les priorités commerciales, administratives, financières et produit au même endroit.</div>
+      <div class="betty-focus"><small>Priorité détectée</small><strong id="bettyPriority">Charger les données de l’entreprise</strong></div>
+      <div class="betty-shortcuts">
+        <button data-betty="Montre-moi le commercial">Pipeline commercial</button>
+        <button data-betty="Ouvre l’agenda">Agenda</button>
+        <button data-betty="Montre les impayés">Impayés</button>
+        <button data-betty="Ouvre les messages">Équipe</button>
+      </div>
+      <form id="bettyForm" class="betty-form"><label for="bettyInput">Demander à Betty</label><div><input id="bettyInput" placeholder="Ex. Que dois-je traiter aujourd’hui ?" autocomplete="off"><button>Envoyer</button></div></form>
+      <div class="privacy">Les données de démonstration restent dans ce navigateur. En mode installé, les droits MAVIK s’appliquent.</div>
+    </aside>
+  </div>
+
+  <dialog id="companyDialog"><form method="dialog" id="companyForm"><div class="dialog-head"><div><div class="eyebrow" id="dialogEyebrow">Nouvel élément</div><h2 id="dialogTitle">Créer</h2></div><button value="cancel" class="icon-button" aria-label="Fermer">×</button></div><div id="dialogFields" class="dialog-fields"></div><div class="dialog-actions"><button value="cancel" class="soft">Annuler</button><button value="save" class="primary" id="dialogSave">Enregistrer</button></div><p id="dialogStatus" class="form-status"></p></form></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="company-client.js"></script>
+</body>
+</html>
