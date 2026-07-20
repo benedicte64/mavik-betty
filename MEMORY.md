@@ -181,3 +181,18 @@ Cette instruction fonctionne pour David, Bénédicte et tout futur collaborateur
 - Les procédures détaillées, décisions techniques et historiques restent dans `knowledge/`.
 - En cas de contradiction, la décision la plus récente, datée et validée prévaut.
 - Ne jamais supprimer une règle importante sans laisser une trace dans un ADR ou dans l’historique Git.
+
+## 15. Stratégie SaaS et hébergement de MAVIK — décision validée
+
+- MAVIK sera commercialisé principalement sous forme de **service SaaS par abonnement**, et non comme une copie indépendante installée et maintenue séparément chez chaque client.
+- L’architecture cible est **multi-tenant** : une base de code commune, avec des espaces clients isolés, des droits distincts et une personnalisation propre à chaque entreprise.
+- Chaque client doit pouvoir disposer de son identité visuelle, de son assistant, de ses modules, de ses utilisateurs et de ses données, sans créer une version logicielle différente à maintenir.
+- Le démarrage doit utiliser une infrastructure mutualisée et économique, puis évoluer progressivement selon le nombre de clients et la charge réelle.
+- Ordre de grandeur retenu pour le pilotage :
+  - démarrage, environ 0 à 20 clients : **10 à 30 € par mois** d’infrastructure de base ;
+  - croissance, environ 20 à 200 clients : **50 à 150 € par mois** ;
+  - plusieurs centaines de clients : séparation progressive des serveurs applicatifs, base de données, stockage, sauvegardes et supervision, avec un budget indicatif de **200 à 1 000 € par mois** selon les usages.
+- Les principaux coûts variables à surveiller sont : stockage des photos et vidéos, sauvegardes, intelligence artificielle, e-mails, SMS, téléphonie et transcription vocale.
+- La facturation des offres devra intégrer des limites ou quotas adaptés pour éviter qu’un client très consommateur ne dégrade la marge globale.
+- L’architecture doit être conçue dès maintenant pour monter en charge sans réécriture complète, tout en évitant de payer une infrastructure surdimensionnée au lancement.
+- Objectif économique : maintenir les coûts techniques à une part raisonnable du chiffre d’affaires récurrent et faire évoluer les ressources en fonction de l’usage réel.
