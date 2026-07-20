@@ -1,6 +1,6 @@
-# GCOS — GentleCarE Operating System
+# Operating System
 
-MVP opérationnel de MAVIK pour GentleCarE, développé et versionné directement dans GitHub.
+MVP opérationnel de MAVIK , développé et versionné directement dans GitHub.
 
 ## Mémoire partagée — à lire en premier
 
