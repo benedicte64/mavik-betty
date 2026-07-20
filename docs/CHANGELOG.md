@@ -2,6 +2,19 @@
 
 Toutes les évolutions fonctionnelles, architecturales et documentaires significatives sont consignées ici.
 
+## 2026-07-20 — Betty Core v1
+
+### Transformé
+- La spécification décisionnelle V1 est réécrite comme fondation Betty Core pour Avenor, sans identité ni donnée d’un client.
+- Les modules deviennent Direction, Commercial, Secrétariat, Comptabilité, Produit, Support, Agenda, Discussion et Documents.
+- Betty dispose désormais d’une mémoire persistante, d’un journal d’audit, de notifications par rôle et de recommandations expliquées.
+- Les créations demandées en conversation nécessitent une confirmation humaine explicite avant écriture.
+
+### Technique
+- Ajout des API `/api/betty/brief`, `/api/betty/command`, `/api/betty/memory` et `/api/betty/audit`.
+- La discussion de l’interface Avenor utilise Betty Core lorsque le serveur MAVIK est installé et conserve un mode démonstration local.
+- Le serveur de démonstration passe en version `0.33.0`.
+
 ## 2026-07-20 — Betty adaptative et profils métiers
 
 ### Ajouté

@@ -13,7 +13,7 @@ const RECOVERY_WINDOW_MS = 15 * 60 * 1000;
 const MAX_RECOVERY_ATTEMPTS = 5;
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCK_MS = 5 * 60 * 1000;
-const DESIGN_LOCK = 'gentlecare-pc-validated-v1';
+const DESIGN_LOCK = 'mavik-adaptive-v1';
 const sessions = new Map();
 const recoveryAttempts = new Map();
 const loginAttempts = new Map();
@@ -365,6 +365,7 @@ function authenticate(req) {
 }
 function can(user, permission) {
   if (!user) return false;
+  if (permission === 'betty.use') return Boolean(ROLE_PERMISSIONS[user.role]);
   const permissions = ROLE_PERMISSIONS[user.role] || [];
   return permissions.includes('*') || permissions.includes(permission) || (permission === 'users.manage' && user.role === 'admin');
 }

@@ -13,7 +13,7 @@ const STATE_FILE = path.join(UPDATE_DIR, 'state.json');
 const PENDING_FILE = path.join(UPDATE_DIR, 'pending-update.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const PACKAGE_FILE = path.join(__dirname, 'package.json');
-const DEFAULT_REPOSITORY = 'gentlecar64-ship-it/-jarvis-gentlecare';
+const DEFAULT_REPOSITORY = 'benedicte64/mavik-betty';
 const DEFAULT_SCHEDULE = Object.freeze({ start: '18:00', end: '07:30', days: [1,2,3,4,5,6,0], automaticInstall: true });
 
 let automaticUpdateRunning = false;
@@ -65,7 +65,7 @@ function state() {
   return { ...saved, enabled: process.env.GCOS_AUTO_UPDATE !== 'false', automaticInstall: process.env.GCOS_AUTO_INSTALL !== 'false' && adminSchedule().automaticInstall, channel: process.env.GCOS_UPDATE_CHANNEL || 'development', branch: updateBranch(), currentVersion: currentVersion(), currentCommit: localCommit(), checking: checkingNow, installing: automaticUpdateRunning, updateAvailable: Boolean(saved.updateAvailable), pendingRestart: fs.existsSync(PENDING_FILE), schedule: updateWindowStatus(), git: gitStatus() };
 }
 function saveState(patch) { const current = readJson(STATE_FILE, {}); const next = { ...current, ...patch, updatedAt: new Date().toISOString() }; writeJson(STATE_FILE, next); return state(); }
-function githubHeaders() { const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'GCOS-Updater', 'X-GitHub-Api-Version': '2022-11-28' }; if (process.env.GCOS_GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GCOS_GITHUB_TOKEN}`; return headers; }
+function githubHeaders() { const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'MAVIK-Betty-Updater', 'X-GitHub-Api-Version': '2022-11-28' }; if (process.env.GCOS_GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GCOS_GITHUB_TOKEN}`; return headers; }
 async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) { const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), timeoutMs); try { return await fetch(url, { ...options, signal: controller.signal }); } finally { clearTimeout(timer); } }
 async function branchMetadata() { const repository = process.env.GCOS_UPDATE_REPOSITORY || DEFAULT_REPOSITORY; const branch = updateBranch(); const response = await fetchWithTimeout(`https://api.github.com/repos/${repository}/commits/${encodeURIComponent(branch)}`, { headers: githubHeaders() }); if (!response.ok) throw new Error(`UPDATE_METADATA_${response.status}`); const commit = await response.json(); return { version: commit.sha.slice(0, 12), commit: commit.sha, name: commit.commit?.message?.split('\n')[0] || `Mise à jour ${commit.sha.slice(0, 7)}`, notes: commit.commit?.message || '', publishedAt: commit.commit?.committer?.date || commit.commit?.author?.date, releaseUrl: commit.html_url, branch }; }
 async function releaseMetadata() { const repository = process.env.GCOS_UPDATE_REPOSITORY || DEFAULT_REPOSITORY; const response = await fetchWithTimeout(`https://api.github.com/repos/${repository}/releases/latest`, { headers: githubHeaders() }); if (!response.ok) throw new Error(`UPDATE_METADATA_${response.status}`); const release = await response.json(); const asset = (release.assets || []).find((item) => /gcos.*\.zip$/i.test(item.name)) || (release.assets || [])[0]; if (!asset) throw new Error('UPDATE_ASSET_NOT_FOUND'); return { version: String(release.tag_name || release.name || '').replace(/^v/i, ''), name: release.name || release.tag_name, notes: release.body || '', publishedAt: release.published_at, downloadUrl: asset.url, fileName: asset.name, size: asset.size, releaseUrl: release.html_url }; }
@@ -91,6 +91,7 @@ async function download() {
 function restartServer() { const entry = path.join(__dirname, 'server.js'); const helper = path.join(__dirname, 'restart-helper.js'); const child = spawn(process.execPath, [helper, String(process.pid), entry, __dirname], { cwd: __dirname, detached: true, stdio: 'ignore', windowsHide: true, env: process.env }); child.unref(); setTimeout(() => process.exit(0), 400).unref(); }
 function validateInstalledFiles() {
   const scripts = [
+    'betty-core.js',
     'server.js','auth.js','jarvis.js','jarvis-extended.js','jarvis-knowledge.js','jarvis-intelligence.js','jarvis-morale.js','emergency-alert.js','employee-flow.js','leave-planning.js',
     'quote-workflow.js','quote-workflow-current.js','quote-workflow-reference.js','quote-studio.js','quote-studio-service.js','quote-requests.js','tariff-catalog.js','workshop-procedures.js','workshop-service.js',
     'planning.js','planning-service.js','calendar-bridge.js','startup-status.js','intervention-report.js','client-intake.js','reputation.js','internal-messaging.js','software-company.js',

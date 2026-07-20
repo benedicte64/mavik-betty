@@ -21,6 +21,7 @@ const clientIntake = require('./client-intake');
 const reputation = require('./reputation');
 const internalMessaging = require('./internal-messaging');
 const softwareCompany = require('./software-company');
+const bettyCore = require('./betty-core');
 const backup = require('./backup');
 const auth = require('./auth');
 const updater = require('./updater');
@@ -176,11 +177,11 @@ const server = http.createServer(async (req, res) => {
       return binary(res, 200, calendarBridge.buildIcs(localStore), 'text/calendar; charset=utf-8', { 'Content-Disposition': 'inline; filename="MAVIK-Agenda.ics"' });
     }
     if (req.method === 'GET' && url.pathname === '/health') return json(res, 200, {
-      service: 'MAVIK GCOS', version: updater.currentVersion(), multiUser: true, device: auth.deviceFromRequest(req), setupRequired: auth.setupRequired(),
+      service: 'MAVIK Betty — Avenor', version: updater.currentVersion(), multiUser: true, device: auth.deviceFromRequest(req), setupRequired: auth.setupRequired(),
       airtableConfigured: Boolean(AIRTABLE_TOKEN), airtableSync: airtableSync.status(), insights: insightsStore.status(), updater: updater.state(), diagnostics: diagnostics.readLastReport(),
       quoteWorkflow: { enabled: true, depositRate: quoteWorkflow.DEPOSIT_RATE }, quoteStudio: { enabled: true, highValueThreshold: quoteStudio.HIGH_VALUE_THRESHOLD, tariffCatalog: true, motorcycle: true }, quoteRequests: { enabled: true, directionValidation: true },
       planning: { enabled: true, capacity: planning.WORKSHOP_CAPACITY, employeeEarlyStart: true, employeeDelay: false, saturdayClosed: true, sundayClosed: true, calendarBridge: true },
-      emergencyAlert: { enabled: true, synchronized: true }, employeeFlow: { enabled: true }, leavePlanning: { enabled: true, principleThenValidation: true }, morale: { enabled: true }, reputation: { enabled: true }, internalMessaging: { enabled: true, multipleRecipients: true, channels: internalMessaging.CHANNELS.length }, softwareCompany: { enabled: true, areas: softwareCompany.AREAS.length }, continuousVoice: { enabled: true }, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString()
+      emergencyAlert: { enabled: true, synchronized: true }, employeeFlow: { enabled: true }, leavePlanning: { enabled: true, principleThenValidation: true }, morale: { enabled: true }, reputation: { enabled: true }, internalMessaging: { enabled: true, multipleRecipients: true, channels: internalMessaging.CHANNELS.length }, softwareCompany: { enabled: true, areas: softwareCompany.AREAS.length }, bettyCore: { enabled: true, version: bettyCore.PROFILE.version, capabilities: bettyCore.CAPABILITIES.length }, continuousVoice: { enabled: true }, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString()
     });
     if (req.method === 'GET' && url.pathname === '/api/auth/status') return json(res, 200, { setupRequired: auth.setupRequired(), device: auth.deviceFromRequest(req), user: auth.authenticate(req) });
     if (req.method === 'GET' && url.pathname === '/api/auth/profiles') return json(res, 200, { profiles: auth.publicProfiles() });
@@ -311,6 +312,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/api/jarvis/brief') { auth.requirePermission(user, 'jarvis.use'); return json(res, 200, jarvis.brief(localStore, user)); }
     if (req.method === 'GET' && url.pathname === '/api/jarvis/knowledge') { auth.requirePermission(user, 'jarvis.use'); return json(res, 200, jarvis.knowledge); }
     if (req.method === 'POST' && url.pathname === '/api/jarvis/command') { auth.requirePermission(user, 'jarvis.use'); return json(res, 200, jarvis.execute(localStore, { ...(await readBody(req)), user })); }
+    if (req.method === 'GET' && url.pathname === '/api/betty/brief') { auth.requirePermission(user, 'betty.use'); return json(res, 200, bettyCore.brief(localStore, user)); }
+    if (req.method === 'POST' && url.pathname === '/api/betty/command') { auth.requirePermission(user, 'betty.use'); return json(res, 200, bettyCore.execute(localStore, await readBody(req), user)); }
+    if (req.method === 'GET' && url.pathname === '/api/betty/memory') { auth.requirePermission(user, 'betty.use'); return json(res, 200, { records: bettyCore.memory(localStore, user, url.searchParams.get('limit')) }); }
+    if (req.method === 'GET' && url.pathname === '/api/betty/audit') { if (!['admin','associate'].includes(user.role)) throw Object.assign(new Error('BETTY_DIRECTION_REQUIRED'), { status: 403 }); return json(res, 200, { records: localStore.list('bettyAudit').slice(0, Math.max(1, Math.min(200, Number(url.searchParams.get('limit')) || 50))) }); }
     if (req.method === 'POST' && url.pathname === '/api/system/backup') { auth.requirePermission(user, 'users.manage'); return json(res, 201, { path: backup.createBackup() }); }
     if (req.method === 'GET' && url.pathname === '/api/local/summary') { auth.requirePermission(user, 'dashboard.read'); return json(res, 200, localStore.summary()); }
 

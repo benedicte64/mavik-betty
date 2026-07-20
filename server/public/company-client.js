@@ -331,19 +331,29 @@
     }catch(error){toast(error.message);}
   });
 
-  function askBetty(command) {
-    const text=String(command||'').trim();const normalized=text.toLowerCase();if(!text)return;
-    let answer='Je peux ouvrir un service, créer une opportunité, préparer un rendez-vous ou résumer les priorités.';
-    if(/commercial|vente|prospect|pipeline/.test(normalized)){navigate('commercial');answer=`Le pipeline actif représente ${money(overview.metrics.pipeline)}, dont ${money(overview.metrics.weightedPipeline)} pondérés.`;}
-    else if(/agenda|calendrier|rendez/.test(normalized)){navigate('calendar');answer=`J’ai regroupé ${nextMeetings(30).length} rendez-vous MAVIK. Les agendas privés attendent votre autorisation iCal.`;}
-    else if(/facture|impay|compta|trésor/.test(normalized)){navigate('accounting');answer=`Il reste ${money(overview.metrics.unpaidInvoices)} à encaisser. Je vous montre les échéances.`;}
-    else if(/message|équipe|interne/.test(normalized)){navigate('messages');answer='J’ouvre la discussion interne. Choisissez le canal concerné.';}
-    else if(/projet|produit|dévelop/.test(normalized)){navigate('product');answer=`${overview.metrics.openProjects} projet(s) logiciel(s) sont ouverts et ${overview.metrics.openTickets} ticket(s) support restent à traiter.`;}
-    else if(/direction|indicateur|performance/.test(normalized)){navigate('direction');answer=`Le MRR actuel est de ${money(overview.metrics.mrr)} et le pipeline pondéré de ${money(overview.metrics.weightedPipeline)}.`;}
-    else if(/quoi|priorit|aujourd/.test(normalized)){const task=(overview.tasks||[]).find(item=>/haute|urgent/i.test(item.priority||''));answer=task?`La priorité est : ${task.title}. Elle est attribuée à ${task.assignee||'l’équipe'}.`:'Aucune urgence n’est enregistrée. Vous pouvez avancer sur le pipeline commercial.';}
-    $('bettyAnswer').textContent=answer;
+  let pendingBettyCommand='';
+  function localBetty(command) {
+    const normalized=command.toLowerCase();let answer='Je peux ouvrir un service, préparer une action ou résumer les priorités.';let view='';
+    if(/commercial|vente|prospect|pipeline/.test(normalized)){view='commercial';answer=`Le pipeline actif représente ${money(overview.metrics.pipeline)}, dont ${money(overview.metrics.weightedPipeline)} pondérés.`;}
+    else if(/agenda|calendrier|rendez/.test(normalized)){view='calendar';answer=`J’ai regroupé ${nextMeetings(30).length} rendez-vous MAVIK.`;}
+    else if(/facture|impay|compta|trésor/.test(normalized)){view='accounting';answer=`Il reste ${money(overview.metrics.unpaidInvoices)} à encaisser.`;}
+    else if(/message|équipe|interne/.test(normalized)){view='messages';answer='J’ouvre la discussion interne.';}
+    else if(/projet|produit|dévelop/.test(normalized)){view='product';answer=`${overview.metrics.openProjects} projet(s) logiciel(s) et ${overview.metrics.openTickets} ticket(s) support sont ouverts.`;}
+    else if(/direction|indicateur|performance/.test(normalized)){view='direction';answer=`Le MRR actuel est de ${money(overview.metrics.mrr)} et le pipeline pondéré de ${money(overview.metrics.weightedPipeline)}.`;}
+    else if(/quoi|priorit|aujourd/.test(normalized)){const task=(overview.tasks||[]).find(item=>/haute|urgent/i.test(item.priority||''));answer=task?`La priorité est : ${task.title}.`:'Aucune urgence n’est enregistrée.';}
+    return{answer,view,requiresConfirmation:false};
   }
-  $('bettyForm').addEventListener('submit',(event)=>{event.preventDefault();const input=$('bettyInput');askBetty(input.value);input.value='';});
+  async function askBetty(command,confirmed=false) {
+    const text=String(command||'').trim();if(!text)return;$('bettyAnswer').textContent=confirmed?'Je confirme l’action…':'Je consulte votre espace…';$('bettyActions').innerHTML='';
+    try{
+      const response=apiMode?await api('/api/betty/command',{method:'POST',body:JSON.stringify({text,confirmed})}):localBetty(text);
+      $('bettyAnswer').textContent=response.answer||'Je suis prête.';if(response.view)await navigate(response.view);
+      if(response.requiresConfirmation){pendingBettyCommand=response.proposedAction?.originalText||text;$('bettyActions').innerHTML='<button class="confirm" type="button" data-betty-confirm>Confirmer</button><button type="button" data-betty-cancel>Annuler</button>';}
+      else pendingBettyCommand='';
+    }catch(error){$('bettyAnswer').textContent=`Je n’ai pas pu terminer : ${error.message}`;}
+  }
+  $('bettyForm').addEventListener('submit',(event)=>{event.preventDefault();const input=$('bettyInput');const command=input.value;input.value='';askBetty(command);});
+  $('bettyActions').addEventListener('click',(event)=>{if(event.target.closest('[data-betty-confirm]'))askBetty(pendingBettyCommand,true);if(event.target.closest('[data-betty-cancel]')){$('bettyActions').innerHTML='';$('bettyAnswer').textContent='Action annulée. Aucune donnée n’a été modifiée.';pendingBettyCommand='';}});
   document.querySelectorAll('[data-betty]').forEach((button)=>button.addEventListener('click',()=>askBetty(button.dataset.betty)));
   $('mobileMenu').addEventListener('click',()=>document.querySelector('.company-sidebar').classList.toggle('open'));
   $('profileButton').addEventListener('click',()=>{

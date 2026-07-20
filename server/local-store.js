@@ -11,7 +11,8 @@ const EMPTY_DB = {
   tasks: [], stockItems: [], quotes: [], quoteRequests: [], documents: [], photos: [], planningBlocks: [],
   workSessions: [], leaveRequests: [], externalCalendarEvents: [],
   opportunities: [], softwareProducts: [], softwareProjects: [], subscriptions: [],
-  invoices: [], expenses: [], contracts: [], supportTickets: [], meetings: [], events: []
+  invoices: [], expenses: [], contracts: [], supportTickets: [], meetings: [], events: [],
+  bettyMemory: [], bettyAudit: [], bettySuggestions: [], bettyNotifications: []
 };
 const DEFAULT_CHECKLIST = {
   receptionPhotos: false, mileageRecorded: false, clientApproval: false,
