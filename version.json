@@ -1,0 +1,12 @@
+{
+  "name": "MAVIK GCOS",
+  "version": "0.30.0",
+  "channel": "stable",
+  "releasedAt": "2026-07-20T07:00:00+02:00",
+  "notes": [
+    "Mise à jour forcée avec contrôle de version",
+    "Affichage de la progression en temps réel",
+    "Journal local des mises à jour",
+    "Vérification et rechargement automatique du service worker"
+  ]
+}
