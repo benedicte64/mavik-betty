@@ -2,6 +2,17 @@
 
 MVP opérationnel de Jarvis pour GentleCarE, développé et versionné directement dans GitHub.
 
+## Référence produit
+
+La vision, les règles d’architecture et la gouvernance du projet sont définies dans :
+
+- [`docs/00_MAVIK_OS_FOUNDATION.md`](./docs/00_MAVIK_OS_FOUNDATION.md)
+- [`docs/ROADMAP.md`](./docs/ROADMAP.md)
+- [`docs/CHANGELOG.md`](./docs/CHANGELOG.md)
+- [`docs/README.md`](./docs/README.md)
+
+Toute évolution importante doit rester conforme au document fondateur ou faire l’objet d’une décision explicitement tracée.
+
 ## Fonctionnalités disponibles
 
 - Tableau de bord Direction
