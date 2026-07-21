@@ -30,6 +30,15 @@ const ROLE_PERMISSIONS = {
   trainee: ['dashboard.read','vehicles.read','interventions.read','tasks.read','photos.read','photos.write','jarvis.use']
 };
 
+const DEFAULT_ACCESSIBILITY_PREFERENCES = Object.freeze({
+  typeToSpeak: false,
+  textOnly: false,
+  visualAlerts: false,
+  reducedMotion: false,
+  largeTargets: false,
+  screenReaderHints: false
+});
+
 const DEFAULT_PREFERENCES = Object.freeze({
   assistantName: 'MAVIK',
   answerStyle: 'direct',
@@ -39,6 +48,7 @@ const DEFAULT_PREFERENCES = Object.freeze({
   proactiveAlerts: true,
   confirmBeforeWrite: true,
   accessMode: 'comfortable',
+  accessibility: DEFAULT_ACCESSIBILITY_PREFERENCES,
   preferredHome: 'dashboard',
   updateWindowStart: '18:00',
   updateWindowEnd: '07:30',
@@ -123,6 +133,9 @@ function normalizeUpdateDays(value) {
   const days = [...new Set(source.map(Number).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6))];
   return days.length ? days : [...DEFAULT_PREFERENCES.updateDays];
 }
+function normalizeAccessibilityPreferences(input = {}) {
+  return Object.fromEntries(Object.keys(DEFAULT_ACCESSIBILITY_PREFERENCES).map((key) => [key, input[key] === true]));
+}
 function normalizePreferences(input = {}) {
   const answerStyle = ['direct', 'balanced', 'detailed'].includes(input.answerStyle) ? input.answerStyle : DEFAULT_PREFERENCES.answerStyle;
   const preferredHome = ['dashboard', 'company', 'jarvis', 'quotes', 'planning', 'profile'].includes(input.preferredHome) ? input.preferredHome : DEFAULT_PREFERENCES.preferredHome;
@@ -137,6 +150,7 @@ function normalizePreferences(input = {}) {
     proactiveAlerts: input.proactiveAlerts !== false,
     confirmBeforeWrite: input.confirmBeforeWrite !== false,
     accessMode,
+    accessibility: normalizeAccessibilityPreferences(input.accessibility),
     preferredHome,
     updateWindowStart: normalizeTime(input.updateWindowStart, DEFAULT_PREFERENCES.updateWindowStart),
     updateWindowEnd: normalizeTime(input.updateWindowEnd, DEFAULT_PREFERENCES.updateWindowEnd),
@@ -306,7 +320,15 @@ function updateMyProfile(actor, input = {}, context = {}) {
   if (!name) throw Object.assign(new Error('USER_NAME_REQUIRED'), { status: 400 });
   if (!validEmail(email)) throw Object.assign(new Error('INVALID_EMAIL'), { status: 400 });
   if (users.some((item, itemIndex) => itemIndex !== index && normalizeEmail(item.email) === email)) throw Object.assign(new Error('EMAIL_ALREADY_EXISTS'), { status: 409 });
-  const preferences = normalizePreferences({ ...users[index].preferences, ...(input.preferences || {}) });
+  const preferenceUpdate = input.preferences || {};
+  const preferences = normalizePreferences({
+    ...users[index].preferences,
+    ...preferenceUpdate,
+    accessibility: {
+      ...(users[index].preferences?.accessibility || {}),
+      ...(preferenceUpdate.accessibility || {})
+    }
+  });
   users[index] = normalizeStoredUser({ ...users[index], name, email, preferences, updatedAt: new Date().toISOString() });
   if (context.id) users[index] = registerTrustedDevice(users[index], context);
   writeUsers(users); return publicUser(users[index], context);
@@ -377,9 +399,9 @@ function requirePermission(user, permission) {
 function collectionPermission(collection, method) { return `${collection}.${method === 'GET' ? 'read' : 'write'}`; }
 
 module.exports = {
-  USERS_FILE, SESSIONS_FILE, ROLE_PERMISSIONS, DEFAULT_PREFERENCES, DESIGN_LOCK, SESSION_TTL_MS,
+  USERS_FILE, SESSIONS_FILE, ROLE_PERMISSIONS, DEFAULT_PREFERENCES, DEFAULT_ACCESSIBILITY_PREFERENCES, DESIGN_LOCK, SESSION_TTL_MS,
   setupRequired, publicProfiles, createInitialAdmin, createUser, listUsers, login, resetPassword, recoverAndLogin,
   updateMyProfile, changeMyPin, setCurrentDevicePin, revokeTrustedDevice, logout,
   tokenFromRequest, authenticate, deviceContextFromRequest, deviceFromRequest,
-  normalizeDevice, can, requirePermission, collectionPermission
+  normalizeDevice, normalizeAccessibilityPreferences, can, requirePermission, collectionPermission
 };
