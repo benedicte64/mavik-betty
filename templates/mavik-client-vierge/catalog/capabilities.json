@@ -253,6 +253,15 @@
       "maturity": "candidate",
       "enabledByDefault": false,
       "humanValidation": "role-scope-source-and-action"
+    },
+    {
+      "id": "accessibility-conformance-evidence",
+      "label": "Registre de conformité et preuves d'audit WCAG, EN 301 549 et RGAA",
+      "domain": "governance",
+      "sourceLineages": ["mavik-core"],
+      "maturity": "candidate",
+      "enabledByDefault": false,
+      "humanValidation": "expert-audit-and-user-testing"
     }
   ]
 }

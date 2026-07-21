@@ -16,11 +16,14 @@ Il ne s'agit ni de Betty, ni de Jarvis, ni d'une copie de leurs données. Le mod
 
 Les éléments toujours présents sont les garanties du socle : séparation des données, droits par rôle, accessibilité, traçabilité, validation humaine et possibilité de retour arrière.
 
+Le dépôt `gentlecar64-ship-it/app` a été désigné par Bénédicte comme source de vérité du programme vierge. Tant que le connecteur GitHub n'y accède pas, cette copie ne prétend pas être synchronisée et conserve son dernier état vérifié.
+
 ## Contenu
 
 - `config/` : identité et rôles encore vierges ;
 - `catalog/` : capacités disponibles et idées à évaluer ;
 - `governance/` : règles de reprise du meilleur de Betty et de Jarvis ;
+- `governance/accessibility-baseline.md` : exigences WCAG, EN 301 549 et RGAA communes aux futures instances ;
 - `src/activate-template.js` : activation future sans modifier le modèle d'origine ;
 - `tests/validate-template.js` : contrôle anti-contamination et cohérence du catalogue.
 

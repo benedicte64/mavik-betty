@@ -9,6 +9,7 @@ Lire d’abord :
 - [`00_MAVIK_OS_FOUNDATION.md`](./00_MAVIK_OS_FOUNDATION.md) — vision, dix lois, architecture globale et règles de gouvernance.
 - [`ROADMAP.md`](./ROADMAP.md) — séquence de livraison de v0.30 à v10.x.
 - [`CHANGELOG.md`](./CHANGELOG.md) — décisions et évolutions intégrées.
+- [`SOCLE_ACCESSIBILITE.md`](./SOCLE_ACCESSIBILITE.md) — cible WCAG 2.2 AA, matrice EN 301 549 et méthode RGAA 4.1.2.
 
 ## Spécifications existantes
 

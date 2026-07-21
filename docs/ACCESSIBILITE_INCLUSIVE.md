@@ -69,6 +69,8 @@ Le parcours détaillé pour une personne aveugle est décrit dans `MODE_VOCAL_AV
 
 La cible de conception est WCAG 2.2 niveau AA. Pour le contexte français, le contrôle doit aussi suivre la méthode RGAA 4.1.2 actuellement publiée. Les critères automatisables doivent être intégrés à la CI, mais l'audit clavier, lecteur d'écran, zoom, contraste, compréhension et essais utilisateurs reste humain.
 
+Le détail des références WCAG, EN 301 549 et RGAA, ainsi que la barrière de livraison, est consigné dans [`SOCLE_ACCESSIBILITE.md`](./SOCLE_ACCESSIBILITE.md).
+
 ## Prochaine recette prioritaire
 
 Organiser cinq parcours de test : lecteur d'écran sans vision, texte seul sans son, communication par **Ma voix**, clavier ou contacteur sans souris, et interface simplifiée. Pour chaque parcours : se connecter, ouvrir son espace métier, demander une tâche à Betty, créer un brouillon, confirmer ou annuler, puis changer les préférences sans assistance technique.

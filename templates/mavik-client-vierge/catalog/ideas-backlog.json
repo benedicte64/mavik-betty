@@ -112,6 +112,14 @@
       "sourceLineages": ["mavik-core"],
       "decision": "not-enabled",
       "evaluation": ["webauthn", "independent-use", "recovery", "shared-device", "audit", "spoken-secret-elimination"]
+    },
+    {
+      "id": "accessibility-release-gate",
+      "title": "Bloquer la promotion d'une interface sans preuves WCAG, EN 301 549, RGAA et essais utilisateurs",
+      "status": "candidate",
+      "sourceLineages": ["mavik-core"],
+      "decision": "not-enabled",
+      "evaluation": ["automated-tests", "keyboard", "screen-reader", "role-matrix", "expert-audit", "user-testing", "rollback"]
     }
   ]
 }

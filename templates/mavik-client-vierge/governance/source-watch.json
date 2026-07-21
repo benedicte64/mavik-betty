@@ -3,8 +3,22 @@
   "checkedAt": "2026-07-21",
   "repositoryAccess": {
     "available": ["benedicte64/mavik-betty"],
-    "unavailable": ["gentlecar64-ship-it/-jarvis-gentlecare"],
-    "note": "La lignée Jarvis est suivie dans l'historique et les chemins hérités du dépôt MAVIK accessible. Le dépôt externe sera ajouté seulement après accès explicite."
+    "unavailable": [
+      "gentlecar64-ship-it/app",
+      "gentlecar64-ship-it/-jarvis-gentlecare"
+    ],
+    "note": "Le programme vierge gentlecar64-ship-it/app a été déclaré comme source de vérité par Bénédicte le 2026-07-21, mais le connecteur GitHub renvoie dépôt introuvable. Aucun état de synchronisation n'est affirmé avant ouverture de l'accès. La lignée Jarvis reste suivie séparément dans les chemins hérités du dépôt MAVIK accessible."
+  },
+  "blankProgram": {
+    "role": "authoritative-blank-program",
+    "repository": "gentlecar64-ship-it/app",
+    "branch": "main",
+    "authority": "owner-declared",
+    "declaredAt": "2026-07-21",
+    "accessStatus": "pending-github-connector-access",
+    "repositoryCursor": null,
+    "lastInspectedAt": null,
+    "syncClaim": false
   },
   "sources": [
     {
@@ -12,7 +26,7 @@
       "label": "Profil de démonstration Betty",
       "repository": "benedicte64/mavik-betty",
       "branch": "main",
-      "repositoryCursor": "2bc1ce83cfd3cbdf68e963468527093510de5126",
+      "repositoryCursor": "7d0498a1050f09e75b935710d6306271168286a4",
       "paths": [
         "server/betty-core.js",
         "server/operational-event-bus.js",
@@ -28,7 +42,7 @@
       "label": "Lignée métier Jarvis",
       "repository": "benedicte64/mavik-betty",
       "branch": "main",
-      "repositoryCursor": "2bc1ce83cfd3cbdf68e963468527093510de5126",
+      "repositoryCursor": "7d0498a1050f09e75b935710d6306271168286a4",
       "lastFeatureCommit": "cdf4404ff730ee26673684ed09ad7edcdac707ac",
       "paths": [
         "server/jarvis*.js",
@@ -50,6 +64,15 @@
       "catalog/capabilities.json",
       "catalog/ideas-backlog.json",
       "CHANGELOG.md"
-    ]
+    ],
+    "accessibilityBaseline": {
+      "designTarget": "WCAG-2.2-AA",
+      "europeanReference": "EN-301-549-v3.2.1",
+      "frenchAuditMethod": "RGAA-4.1.2",
+      "rgaaCriteria": 106,
+      "automatedTestsAreSufficient": false,
+      "userTestingRequired": true,
+      "watch": ["RGAA-5"]
+    }
   }
 }
