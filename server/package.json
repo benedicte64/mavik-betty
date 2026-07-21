@@ -1,6 +1,6 @@
 {
   "name": "mavik-betty-server",
-  "version": "0.36.0",
+  "version": "0.37.0",
   "private": true,
   "description": "Serveur MAVIK Betty pour la démonstration Avenor",
   "main": "server.js",

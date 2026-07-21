@@ -58,6 +58,7 @@ function testSourcesRemainSeparated() {
 
 function testAccessibilityBaseline() {
   const manifest = readJson('template.manifest.json');
+  const config = readJson('config/client.template.json');
   const baselinePath = path.join(ROOT, 'governance/accessibility-baseline.md');
   assert.equal(manifest.blankProgramSource.repository, 'gentlecar64-ship-it/app');
   assert.equal(manifest.blankProgramSource.syncClaim, false);
@@ -66,6 +67,8 @@ function testAccessibilityBaseline() {
   assert.equal(manifest.accessibilityBaseline.frenchAuditMethod, 'RGAA-4.1.2');
   assert.equal(manifest.accessibilityBaseline.requiresHumanAudit, true);
   assert.equal(manifest.accessibilityBaseline.requiresUserTesting, true);
+  assert.equal(config.accessibility.handsFreeEnabledByDefault, false);
+  assert.equal(config.accessibility.singleSwitchScanningEnabledByDefault, false);
   assert.equal(fs.existsSync(baselinePath), true, 'Le socle accessibilité doit être documenté.');
 }
 

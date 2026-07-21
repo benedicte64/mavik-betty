@@ -11,7 +11,7 @@
     benedicte:{ id:'demo-direction', username:'benedicte', name:'Bénédicte', role:'admin' }, lina:{ id:'demo-commercial', username:'lina', name:'Lina', role:'commercial' },
     emma:{ id:'demo-secretariat', username:'emma', name:'Emma', role:'secretary' }, louis:{ id:'demo-accounting', username:'louis', name:'Louis', role:'accountant' }, nora:{ id:'demo-product', username:'nora', name:'Nora', role:'developer' }
   };
-  const DEFAULT_ACCESSIBILITY = Object.freeze({ typeToSpeak:false, textOnly:false, visualAlerts:false, reducedMotion:false, largeTargets:false, screenReaderHints:false, voiceFirst:false, dailyBriefing:false, voiceGender:'auto', voiceRate:.9 });
+  const DEFAULT_ACCESSIBILITY = Object.freeze({ typeToSpeak:false, textOnly:false, visualAlerts:false, reducedMotion:false, largeTargets:false, screenReaderHints:false, voiceFirst:false, dailyBriefing:false, handsFree:false, switchScanning:false, voiceGender:'auto', voiceRate:.9 });
   const CHANNELS = [
     ['general', 'Toute l’équipe'], ['commercial', 'Commercial'], ['secretariat', 'Secrétariat'],
     ['accounting', 'Comptabilité'], ['product', 'Produit & développement'], ['direction', 'Direction']
@@ -120,7 +120,8 @@
   function readDemoAccounts() { try { return JSON.parse(localStorage.getItem(DEMO_ACCOUNTS_KEY)||'{}'); } catch { return {}; } }
   function normalizeAccessibility(input = {}) {
     const voice=BettyVoice.normalize(input);const normalized={typeToSpeak:input.typeToSpeak===true,textOnly:input.textOnly===true,visualAlerts:input.visualAlerts===true,reducedMotion:input.reducedMotion===true,largeTargets:input.largeTargets===true,screenReaderHints:input.screenReaderHints===true,...voice};
-    if(normalized.textOnly)normalized.voiceFirst=false;
+    if(normalized.handsFree)normalized.voiceFirst=true;
+    if(normalized.textOnly){normalized.voiceFirst=false;normalized.handsFree=false;}
     return normalized;
   }
   function activateDemoProfile(username) {
@@ -142,8 +143,14 @@
     Object.entries(classMap).forEach(([key,className])=>document.body.classList.toggle(className,activeAccessibility[key]));
     document.querySelectorAll('[data-access-feature]').forEach((button)=>button.setAttribute('aria-pressed',String(activeAccessibility[button.dataset.accessFeature]===true)));
     $('voiceButton').hidden=!activeAccessibility.typeToSpeak;
+    $('handsFreeButton').hidden=!activeAccessibility.handsFree;
+    $('switchScanButton').hidden=!activeAccessibility.switchScanning;
     $('profileVoiceGender').value=activeAccessibility.voiceGender;$('profileVoiceRate').value=String(activeAccessibility.voiceRate);
     $('commandVoiceButton').setAttribute('aria-label',activeAccessibility.voiceFirst?'Parler à Betty, mode tout à la voix actif':'Parler à Betty');
+    $('handsFreeButton').setAttribute('aria-label','Démarrer ou arrêter la session sans les mains. Raccourci Alt plus M.');
+    $('switchScanButton').setAttribute('aria-label','Démarrer ou arrêter le balayage pour contacteur unique. Raccourci Alt plus S.');
+    if(!activeAccessibility.handsFree&&handsFreeActive)stopHandsFreeSession(false);
+    if(!activeAccessibility.switchScanning&&switchScanTimer)stopSwitchScanning(false);
     if(activeAccessibility.reducedMotion)setMascotMotion(true);
   }
   function speakBetty(text,force=false){if(activeAccessibility.textOnly&&!force)return Promise.resolve(false);return BettyVoice.speak(text,activeAccessibility,{respectTextOnly:!force});}
@@ -432,8 +439,21 @@
   $('bettyActions').addEventListener('click',(event)=>{if(event.target.closest('[data-betty-confirm]'))askBetty(pendingBettyCommand,true);if(event.target.closest('[data-betty-cancel]'))cancelBettyAction();});
   let voiceTurnRunning=false;
   async function runVoiceTurn(){if(voiceTurnRunning)return;voiceTurnRunning=true;const button=$('commandVoiceButton');button.classList.add('listening');button.textContent='● Je vous écoute…';$('voiceCommandStatus').textContent='Parlez maintenant. Une seule demande à la fois.';try{const heard=await BettyVoice.listenOnce();$('voiceCommandStatus').textContent=`Demande comprise : ${heard}`;if(pendingBettyCommand&&/confirme|confirmé|oui|d'accord|vas-y/i.test(heard))await askBetty(pendingBettyCommand,true,true);else if(pendingBettyCommand&&/annule|non|stop|arrête/i.test(heard)){cancelBettyAction();await speakBetty('Action annulée. Aucune donnée n’a été modifiée.',true);}else await askBetty(heard,false,true);}catch(error){const answer=voiceErrorMessage(error);$('voiceCommandStatus').textContent=answer;await speakBetty(answer,true);}finally{voiceTurnRunning=false;button.classList.remove('listening');button.textContent='🎙 Parler à Betty';}}
+  let handsFreeActive=false;
+  let switchScanTimer=null;
+  let switchScanIndex=-1;
+  function controlLabel(control){return String(control?.getAttribute('aria-label')||control?.innerText||control?.value||control?.name||control?.id||'commande').replace(/\s+/g,' ').trim().slice(0,140);}
+  function availableControls(){const openDialog=document.querySelector('dialog[open]');const scope=openDialog||document;return [...scope.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]')].filter((control)=>!control.hidden&&control.getClientRects().length);}
+  async function moveControl(direction=1,announce=true){const controls=availableControls();if(!controls.length)return null;const current=controls.indexOf(document.activeElement);switchScanIndex=current>=0?current:switchScanIndex;switchScanIndex=(switchScanIndex+direction+controls.length)%controls.length;document.querySelectorAll('.switch-scan-target').forEach((item)=>item.classList.remove('switch-scan-target'));const target=controls[switchScanIndex];target.classList.add('switch-scan-target');target.focus({preventScroll:false});target.scrollIntoView({block:'center',behavior:activeAccessibility.reducedMotion?'auto':'smooth'});const label=controlLabel(target);$('voiceCommandStatus').textContent=`Commande ciblée : ${label}`;if(announce)await speakBetty(label,true);return target;}
+  function stopSwitchScanning(announce=false){if(switchScanTimer)clearInterval(switchScanTimer);switchScanTimer=null;document.querySelectorAll('.switch-scan-target').forEach((item)=>item.classList.remove('switch-scan-target'));$('switchScanButton').classList.remove('active');$('switchScanButton').setAttribute('aria-pressed','false');$('switchScanButton').textContent='◉ Démarrer le contacteur';if(announce)speakBetty('Balayage par contacteur arrêté.',true);}
+  function toggleSwitchScanning(){if(switchScanTimer){stopSwitchScanning(true);return;}$('switchScanButton').classList.add('active');$('switchScanButton').setAttribute('aria-pressed','true');$('switchScanButton').textContent='■ Arrêter le contacteur';$('voiceCommandStatus').textContent='Balayage actif. Utilisez votre contacteur pour activer la commande ciblée.';moveControl(1,false);switchScanTimer=setInterval(()=>moveControl(1,false),2500);}
+  function stopHandsFreeSession(announce=false){handsFreeActive=false;BettyVoice.stopListening();$('handsFreeButton').classList.remove('active');$('handsFreeButton').setAttribute('aria-pressed','false');$('handsFreeButton').textContent='♿ Démarrer sans les mains';$('voiceCommandStatus').textContent='Mode sans les mains arrêté. Microphone inactif.';if(announce)speakBetty('Mode sans les mains arrêté. Le microphone est inactif.',true);}
+  async function handleHandsFreeCommand(heard){const command=String(heard||'').toLowerCase();$('voiceCommandStatus').textContent=`Commande comprise : ${heard}`;if(/arrête le mode|arrete le mode|stop écoute|stop ecoute|désactive le micro/.test(command)){stopHandsFreeSession(true);return;}if(/précédent|precedent|en arrière/.test(command)){await moveControl(-1);return;}if(/suivant|avance/.test(command)){await moveControl(1);return;}if(/^(lis|lire|répète la commande|repete la commande)/.test(command)){await speakBetty(controlLabel(document.activeElement),true);return;}const view=BettyVoice.matchChoice(command,[{id:'dashboard',label:'vue d’ensemble',aliases:['accueil','tableau de bord']},{id:'commercial',label:'commercial'},{id:'secretariat',label:'secrétariat'},{id:'accounting',label:'comptabilité'},{id:'product',label:'produit'},{id:'direction',label:'direction'},{id:'calendar',label:'agenda'},{id:'messages',label:'messages',aliases:['discussion','équipe']}]);if(view&&/ouvre|affiche|va|montre|agenda|commercial|secrétariat|comptabilité|produit|direction|messages|discussion/.test(command)){document.querySelector(`[data-view="${view.id}"]`)?.click();await speakBetty(`${view.label} ouvert.`,true);return;}if(/^(ouvre|ouvrir|active|activer|sélectionne|selectionne|valide)$/.test(command)){const target=document.activeElement;if(target?.click){target.click();await speakBetty(`${controlLabel(target)} activé.`,true);}return;}if(pendingBettyCommand&&/confirme|confirmé|oui|d'accord|vas-y/.test(command)){await askBetty(pendingBettyCommand,true,true);return;}if(pendingBettyCommand&&/annule|non/.test(command)){cancelBettyAction();await speakBetty('Action annulée. Aucune donnée n’a été modifiée.',true);return;}await askBetty(heard,false,true);}
+  async function toggleHandsFreeSession(){if(handsFreeActive){stopHandsFreeSession(true);return;}if(!BettyVoice.supported()){$('voiceCommandStatus').textContent='La reconnaissance vocale continue n’est pas disponible. Le contacteur et le clavier restent utilisables.';return;}handsFreeActive=true;$('handsFreeButton').classList.add('active');$('handsFreeButton').setAttribute('aria-pressed','true');$('handsFreeButton').textContent='■ Arrêter le mode sans les mains';await speakBetty('Mode sans les mains démarré pour cette session. Dites suivant, précédent, ouvrir, confirmer, annuler, ou arrête le mode.',true);while(handsFreeActive){try{$('voiceCommandStatus').textContent='Mode sans les mains actif. Je vous écoute.';const heard=await BettyVoice.listenOnce();if(heard)await handleHandsFreeCommand(heard);}catch(error){if(!handsFreeActive)break;$('voiceCommandStatus').textContent=voiceErrorMessage(error);await new Promise((resolve)=>setTimeout(resolve,500));}}}
   $('commandVoiceButton').addEventListener('click',runVoiceTurn);
-  document.addEventListener('keydown',(event)=>{if(event.altKey&&event.key.toLowerCase()==='b'){event.preventDefault();runVoiceTurn();}});
+  $('handsFreeButton').addEventListener('click',toggleHandsFreeSession);
+  $('switchScanButton').addEventListener('click',toggleSwitchScanning);
+  document.addEventListener('keydown',(event)=>{const key=event.key.toLowerCase();if(event.altKey&&key==='b'){event.preventDefault();runVoiceTurn();}if(event.altKey&&key==='m'){event.preventDefault();toggleHandsFreeSession();}if(event.altKey&&key==='s'){event.preventDefault();toggleSwitchScanning();}if(event.key==='Escape'){if(handsFreeActive)stopHandsFreeSession(true);if(switchScanTimer)stopSwitchScanning(true);}});
   document.querySelectorAll('[data-betty]').forEach((button)=>button.addEventListener('click',()=>askBetty(button.dataset.betty)));
   $('mobileMenu').addEventListener('click',()=>document.querySelector('.company-sidebar').classList.toggle('open'));
   $('profileButton').addEventListener('click',()=>{
@@ -445,7 +465,7 @@
     const accounts=readDemoAccounts(),username=localState.user?.username;if(accounts[username]){accounts[username].accessMode=mode;localStorage.setItem(DEMO_ACCOUNTS_KEY,JSON.stringify(accounts));}overview.user.accessMode=mode;$('profileStatus').textContent='Adaptation enregistrée dans ce profil.';
   }));
   document.querySelectorAll('[data-access-feature]').forEach((button)=>button.addEventListener('click',async()=>{
-    const key=button.dataset.accessFeature;const next={...activeAccessibility,[key]:!activeAccessibility[key]};if(key==='voiceFirst'&&next.voiceFirst)next.textOnly=false;if(key==='textOnly'&&next.textOnly)next.voiceFirst=false;applyAccessibility(next);
+    const key=button.dataset.accessFeature;const next={...activeAccessibility,[key]:!activeAccessibility[key]};if((key==='voiceFirst'||key==='handsFree')&&next[key])next.textOnly=false;if(key==='handsFree'&&next.handsFree)next.voiceFirst=true;if(key==='textOnly'&&next.textOnly){next.voiceFirst=false;next.handsFree=false}applyAccessibility(next);
     if(apiMode){try{const data=await api('/api/profile',{method:'PATCH',body:JSON.stringify({preferences:{accessibility:next}})});activeAccessibility=normalizeAccessibility(data.user?.preferences?.accessibility||next);applyAccessibility(activeAccessibility);$('profileStatus').textContent='Façon de travailler enregistrée.';}catch(error){$('profileStatus').textContent=error.message;}return;}
     const accounts=readDemoAccounts(),username=localState.user?.username;accounts[username]={...(accounts[username]||{}),accessibility:next};localStorage.setItem(DEMO_ACCOUNTS_KEY,JSON.stringify(accounts));overview.user.accessibility=next;$('profileStatus').textContent='Façon de travailler enregistrée dans ce profil.';
   }));

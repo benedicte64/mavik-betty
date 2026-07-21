@@ -5,6 +5,8 @@
   const DEFAULTS = Object.freeze({
     voiceFirst: false,
     dailyBriefing: false,
+    handsFree: false,
+    switchScanning: false,
     voiceGender: 'auto',
     voiceRate: 0.9
   });
@@ -24,6 +26,8 @@
     return {
       voiceFirst: input.voiceFirst === true,
       dailyBriefing: input.dailyBriefing === true,
+      handsFree: input.handsFree === true,
+      switchScanning: input.switchScanning === true,
       voiceGender: ['auto', 'female', 'male'].includes(input.voiceGender) ? input.voiceGender : DEFAULTS.voiceGender,
       voiceRate: clampRate(input.voiceRate)
     };

@@ -262,6 +262,15 @@
       "maturity": "candidate",
       "enabledByDefault": false,
       "humanValidation": "expert-audit-and-user-testing"
+    },
+    {
+      "id": "hands-free-voice-and-switch",
+      "label": "Travail sans les mains par commandes vocales ou contacteur unique",
+      "domain": "accessibility",
+      "sourceLineages": ["betty", "mavik-core"],
+      "maturity": "candidate",
+      "enabledByDefault": false,
+      "humanValidation": "user-choice-device-privacy-and-field-test"
     }
   ]
 }

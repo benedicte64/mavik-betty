@@ -28,10 +28,12 @@ try {
 
   const firstLogin = auth.login('lina', '2468', { id:'adaptive-user', type:'pc', label:'Clavier adapté' });
   assert.equal(firstLogin.user.mustChoosePin, true);
-  const adapted = auth.updateMyProfile(firstLogin.user, { preferences:{ accessMode:'large', accessibility:{ typeToSpeak:true, voiceFirst:true, dailyBriefing:true, voiceGender:'female', voiceRate:0.8, reducedMotion:true } } }, { id:'adaptive-user', type:'pc', label:'Clavier adapté' });
+  const adapted = auth.updateMyProfile(firstLogin.user, { preferences:{ accessMode:'large', accessibility:{ typeToSpeak:true, voiceFirst:true, dailyBriefing:true, handsFree:true, switchScanning:true, voiceGender:'female', voiceRate:0.8, reducedMotion:true } } }, { id:'adaptive-user', type:'pc', label:'Clavier adapté' });
   assert.equal(adapted.preferences.accessibility.typeToSpeak, true, 'type-to-speech must be persisted per user');
   assert.equal(adapted.preferences.accessibility.voiceFirst, true, 'voice-first answers must be available per user');
   assert.equal(adapted.preferences.accessibility.dailyBriefing, true, 'the startup briefing must remain opt-in');
+  assert.equal(adapted.preferences.accessibility.handsFree, true, 'hands-free voice control must remain opt-in');
+  assert.equal(adapted.preferences.accessibility.switchScanning, true, 'single-switch scanning must remain opt-in');
   assert.equal(adapted.preferences.accessibility.voiceGender, 'female');
   assert.equal(adapted.preferences.accessibility.voiceRate, 0.8);
   assert.equal(adapted.preferences.accessibility.reducedMotion, true, 'reduced motion must be persisted per user');
@@ -43,6 +45,7 @@ try {
   const textOnly = auth.updateMyProfile(mergedAdaptation, { preferences:{ accessibility:{ textOnly:true, voiceFirst:true, voiceGender:'unknown', voiceRate:9 } } }, { id:'adaptive-user', type:'pc', label:'Clavier adapté' });
   assert.equal(textOnly.preferences.accessibility.textOnly, true);
   assert.equal(textOnly.preferences.accessibility.voiceFirst, false, 'text-only and automatic voice must not be active together');
+  assert.equal(textOnly.preferences.accessibility.handsFree, false, 'text-only must stop a hands-free voice session preference');
   assert.equal(textOnly.preferences.accessibility.voiceGender, 'auto');
   assert.equal(textOnly.preferences.accessibility.voiceRate, 1.1, 'voice rate must be bounded');
   auth.changeMyPin(firstLogin.user, { currentPin:'2468', newPin:'8642' });

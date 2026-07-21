@@ -2,6 +2,18 @@
 
 Toutes les évolutions fonctionnelles, architecturales et documentaires significatives sont consignées ici.
 
+## 2026-07-21 — Betty sans les mains
+
+### Ajouté
+
+- Session vocale volontaire avec commandes suivant, précédent, lire, ouvrir, confirmer, annuler et arrêter.
+- Navigation vocale directe vers les espaces autorisés par le rôle.
+- Balayage automatique des commandes visibles pour un contacteur unique configuré comme Entrée ou Espace.
+- Indicateur visuel renforcé, annonces `aria-live`, raccourcis `Alt+M` et `Alt+S`, et arrêt immédiat par `Échap`.
+- Préférences séparées par profil et désactivées par défaut.
+- Documentation des limites navigateur, confidentialité, contacteurs et futurs essais utilisateurs.
+- Le serveur de démonstration passe en version `0.37.0`.
+
 ## 2026-07-21 — Socle de référence accessibilité
 
 ### Décidé

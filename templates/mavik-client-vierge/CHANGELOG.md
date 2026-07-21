@@ -1,5 +1,13 @@
 # Journal du modèle MAVIK vierge
 
+## 0.5.0 — 2026-07-21
+
+- ajout du travail sans les mains par session vocale volontaire ;
+- ajout du balayage automatique pour contacteur unique ;
+- ajout des commandes de navigation, confirmation, annulation et arrêt immédiat ;
+- ajout au backlog des adaptateurs pour contacteurs, contrôle oculaire et commandes natives du système ;
+- maintien de toutes ces options désactivées par défaut et soumises aux essais utilisateurs.
+
 ## 0.4.0 — 2026-07-21
 
 - enregistrement de `gentlecar64-ship-it/app` comme source de vérité déclarée du programme vierge ;
