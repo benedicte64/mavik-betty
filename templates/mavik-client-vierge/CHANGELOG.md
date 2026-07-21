@@ -1,5 +1,13 @@
 # Journal du modèle MAVIK vierge
 
+## 0.3.0 — 2026-07-21
+
+- ajout du parcours vocal guidé, question par question, désactivé par défaut ;
+- ajout d’un briefing métier commun sur les e-mails, rendez-vous, commandes, devis, règlements et tâches ;
+- ajout des choix de voix et de rythme par profil, sans modifier les droits métier ;
+- ajout au backlog d’une phrase d’appel consentie et d’une authentification sans secret parlé ;
+- rappel que les envois, commandes, devis et opérations financières exigent toujours une validation humaine.
+
 ## 0.2.0 — 2026-07-21
 
 - ajout du profil d'accès multimodal combinable par utilisateur ;

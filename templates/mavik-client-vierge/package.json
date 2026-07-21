@@ -1,6 +1,6 @@
 {
   "name": "mavik-client-template",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Modèle neutre pour une future instance client MAVIK",
   "scripts": {

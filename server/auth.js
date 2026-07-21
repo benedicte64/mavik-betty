@@ -36,7 +36,11 @@ const DEFAULT_ACCESSIBILITY_PREFERENCES = Object.freeze({
   visualAlerts: false,
   reducedMotion: false,
   largeTargets: false,
-  screenReaderHints: false
+  screenReaderHints: false,
+  voiceFirst: false,
+  dailyBriefing: false,
+  voiceGender: 'auto',
+  voiceRate: 0.9
 });
 
 const DEFAULT_PREFERENCES = Object.freeze({
@@ -134,7 +138,13 @@ function normalizeUpdateDays(value) {
   return days.length ? days : [...DEFAULT_PREFERENCES.updateDays];
 }
 function normalizeAccessibilityPreferences(input = {}) {
-  return Object.fromEntries(Object.keys(DEFAULT_ACCESSIBILITY_PREFERENCES).map((key) => [key, input[key] === true]));
+  const booleanKeys = ['typeToSpeak','textOnly','visualAlerts','reducedMotion','largeTargets','screenReaderHints','voiceFirst','dailyBriefing'];
+  const normalized = Object.fromEntries(booleanKeys.map((key) => [key, input[key] === true]));
+  normalized.voiceGender = ['auto','female','male'].includes(input.voiceGender) ? input.voiceGender : DEFAULT_ACCESSIBILITY_PREFERENCES.voiceGender;
+  const rate = Number(input.voiceRate);
+  normalized.voiceRate = Number.isFinite(rate) ? Math.min(1.1, Math.max(0.7, rate)) : DEFAULT_ACCESSIBILITY_PREFERENCES.voiceRate;
+  if (normalized.textOnly) normalized.voiceFirst = false;
+  return normalized;
 }
 function normalizePreferences(input = {}) {
   const answerStyle = ['direct', 'balanced', 'detailed'].includes(input.answerStyle) ? input.answerStyle : DEFAULT_PREFERENCES.answerStyle;

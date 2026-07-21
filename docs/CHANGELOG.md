@@ -2,6 +2,25 @@
 
 Toutes les évolutions fonctionnelles, architecturales et documentaires significatives sont consignées ici.
 
+## 2026-07-21 — Betty voix d’abord pour une personne aveugle
+
+### Ajouté
+
+- Sélection du profil par la voix et code oral à quatre chiffres, sans répétition, affichage ni journalisation du secret.
+- Parcours de première connexion question par question : voix, rythme et briefing de démarrage.
+- Bouton permanent **Parler à Betty**, raccourci `Alt+B`, réponses vocales et confirmation orale des écritures.
+- Accueil varié et sobre, petite conversation, réponse honnête lorsque la météo ou une source réelle n’est pas connectée.
+- Briefing métier commun sur e-mails, rendez-vous, commandes, devis, règlements et tâches, filtré par rôle.
+- Documentation de sécurité, limites navigateur et priorité future donnée à WebAuthn.
+- Le serveur de démonstration passe en version `0.36.0`.
+
+### Sécurité et limites
+
+- Le microphone ne démarre qu’après une action de la personne ; aucune écoute permanente n’est activée.
+- Le code oral reste un recours d’accessibilité : le navigateur peut traiter la voix avec un service externe.
+- Une passkey ou une biométrie locale est la cible recommandée ; un paiement ne peut jamais être validé par la seule voix.
+- Le mode reste candidat tant qu’il n’a pas été testé avec des personnes aveugles sur plusieurs appareils.
+
 ## 2026-07-21 — Betty inclusive par profil
 
 ### Ajouté

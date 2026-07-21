@@ -19,6 +19,7 @@ Betty comprend l’activité d’Avenor, présente les informations utiles à ch
 - Base documentaire.
 - Analyse des procédures.
 - Suggestions décisionnelles expliquées avec validation humaine.
+- Dialogue vocal guidé avec confirmation explicite.
 
 ## Modules Avenor connectés
 
@@ -36,6 +37,7 @@ Betty comprend l’activité d’Avenor, présente les informations utiles à ch
 - Betty connaît le rôle de la personne connectée et n’affiche que les espaces autorisés.
 - L’interface peut être confortable, agrandie, contrastée ou simplifiée.
 - Les consignes importantes sont disponibles à l’écrit et, lorsque l’utilisateur l’accepte, vocalement.
+- Le socle de briefing couvre les e-mails, rendez-vous, commandes, devis, règlements et tâches, puis les modules d’activité ajoutent leur vocabulaire.
 - Chaque client de MAVIK pourra choisir une autre identité d’assistant sans modifier ce moteur.
 
 ## Principes obligatoires

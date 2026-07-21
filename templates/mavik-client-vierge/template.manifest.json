@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "templateVersion": "0.1.0",
+  "templateVersion": "0.3.0",
   "status": "WAITING_FOR_IDENTITY",
   "createdAt": "2026-07-20",
   "product": "MAVIK",
@@ -12,7 +12,7 @@
   "coreSource": {
     "repository": "benedicte64/mavik-betty",
     "branch": "main",
-    "baselineCommit": "917ead926a6943ca0cd9c62c39a765e10e3c9a05"
+    "baselineCommit": "2bc1ce83cfd3cbdf68e963468527093510de5126"
   },
   "architecture": {
     "sharedCore": "MAVIK Core",
