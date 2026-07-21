@@ -2,6 +2,22 @@
 
 Toutes les évolutions fonctionnelles, architecturales et documentaires significatives sont consignées ici.
 
+## 2026-07-21 — Betty inclusive par profil
+
+### Ajouté
+
+- Préférences combinables par utilisateur, sans demander de diagnostic : texte seul, alertes visuelles, mouvements réduits, grandes zones d'action et priorité lecteur d'écran.
+- Outil **Ma voix** : la personne écrit une phrase et Betty la prononce localement sur son appareil.
+- Liens d'accès direct, messages écrits permanents et renforcement du parcours clavier.
+- Mémorisation et normalisation côté serveur des préférences d'accessibilité, sans modifier les droits métier.
+- Catalogue neutre et backlog pour les futures instances MAVIK, toutes options désactivées par défaut.
+- Le serveur de démonstration passe en version `0.35.0`.
+
+### Limites assumées
+
+- Cette étape ne vaut pas certification RGAA ou WCAG.
+- Transcription en direct, langue des signes, contacteur, pilotage oculaire, dispositifs de CAA et alternatives au code PIN restent à prototyper et à tester avec les personnes concernées.
+
 ## 2026-07-20 — Betty Operational Brain
 
 ### Ajouté
