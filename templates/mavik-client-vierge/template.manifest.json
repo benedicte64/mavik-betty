@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "templateVersion": "0.5.0",
+  "templateVersion": "0.3.0",
   "status": "WAITING_FOR_IDENTITY",
   "createdAt": "2026-07-20",
   "product": "MAVIK",
@@ -12,15 +12,7 @@
   "coreSource": {
     "repository": "benedicte64/mavik-betty",
     "branch": "main",
-    "baselineCommit": "7d0498a1050f09e75b935710d6306271168286a4"
-  },
-  "blankProgramSource": {
-    "repository": "gentlecar64-ship-it/app",
-    "branch": "main",
-    "authority": "owner-declared",
-    "accessStatus": "pending-github-connector-access",
-    "baselineCommit": null,
-    "syncClaim": false
+    "baselineCommit": "2bc1ce83cfd3cbdf68e963468527093510de5126"
   },
   "architecture": {
     "sharedCore": "MAVIK Core",
@@ -37,12 +29,5 @@
     "auditability",
     "secret-redaction",
     "rollback-capability"
-  ],
-  "accessibilityBaseline": {
-    "designTarget": "WCAG-2.2-AA",
-    "europeanReference": "EN-301-549-v3.2.1",
-    "frenchAuditMethod": "RGAA-4.1.2",
-    "requiresHumanAudit": true,
-    "requiresUserTesting": true
-  }
+  ]
 }

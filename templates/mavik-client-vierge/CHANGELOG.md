@@ -1,22 +1,5 @@
 # Journal du modèle MAVIK vierge
 
-## 0.5.0 — 2026-07-21
-
-- ajout du travail sans les mains par session vocale volontaire ;
-- ajout du balayage automatique pour contacteur unique ;
-- ajout des commandes de navigation, confirmation, annulation et arrêt immédiat ;
-- ajout au backlog des adaptateurs pour contacteurs, contrôle oculaire et commandes natives du système ;
-- maintien de toutes ces options désactivées par défaut et soumises aux essais utilisateurs.
-
-## 0.4.0 — 2026-07-21
-
-- enregistrement de `gentlecar64-ship-it/app` comme source de vérité déclarée du programme vierge ;
-- état d'accès marqué explicitement en attente, sans prétendre que cette copie est synchronisée ;
-- adoption de WCAG 2.2 AA comme cible de conception, avec EN 301 549 v3.2.1 et RGAA 4.1.2 comme références de contrôle ;
-- ajout d'une barrière de livraison qui exige audit humain et essais utilisateurs ;
-- ajout du registre de preuves de conformité au catalogue, désactivé par défaut ;
-- conservation stricte des deux sources Betty et lignée Jarvis séparées.
-
 ## 0.3.0 — 2026-07-21
 
 - ajout du parcours vocal guidé, question par question, désactivé par défaut ;

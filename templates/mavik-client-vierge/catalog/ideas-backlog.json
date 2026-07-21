@@ -112,22 +112,6 @@
       "sourceLineages": ["mavik-core"],
       "decision": "not-enabled",
       "evaluation": ["webauthn", "independent-use", "recovery", "shared-device", "audit", "spoken-secret-elimination"]
-    },
-    {
-      "id": "accessibility-release-gate",
-      "title": "Bloquer la promotion d'une interface sans preuves WCAG, EN 301 549, RGAA et essais utilisateurs",
-      "status": "candidate",
-      "sourceLineages": ["mavik-core"],
-      "decision": "not-enabled",
-      "evaluation": ["automated-tests", "keyboard", "screen-reader", "role-matrix", "expert-audit", "user-testing", "rollback"]
-    },
-    {
-      "id": "hands-free-device-adapters",
-      "title": "Adapter le mode sans les mains aux contacteurs, au contrôle oculaire et aux commandes natives du système",
-      "status": "candidate",
-      "sourceLineages": ["betty", "mavik-core"],
-      "decision": "not-enabled",
-      "evaluation": ["switch-devices", "eye-tracking", "voice-access", "scan-groups", "timing-control", "privacy", "user-testing"]
     }
   ]
 }

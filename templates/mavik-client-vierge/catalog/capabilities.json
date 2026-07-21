@@ -253,24 +253,6 @@
       "maturity": "candidate",
       "enabledByDefault": false,
       "humanValidation": "role-scope-source-and-action"
-    },
-    {
-      "id": "accessibility-conformance-evidence",
-      "label": "Registre de conformité et preuves d'audit WCAG, EN 301 549 et RGAA",
-      "domain": "governance",
-      "sourceLineages": ["mavik-core"],
-      "maturity": "candidate",
-      "enabledByDefault": false,
-      "humanValidation": "expert-audit-and-user-testing"
-    },
-    {
-      "id": "hands-free-voice-and-switch",
-      "label": "Travail sans les mains par commandes vocales ou contacteur unique",
-      "domain": "accessibility",
-      "sourceLineages": ["betty", "mavik-core"],
-      "maturity": "candidate",
-      "enabledByDefault": false,
-      "humanValidation": "user-choice-device-privacy-and-field-test"
     }
   ]
 }

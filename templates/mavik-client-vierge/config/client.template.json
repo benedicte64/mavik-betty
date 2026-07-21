@@ -34,8 +34,6 @@
     "voiceFirstEnabledByDefault": false,
     "dailyBriefingEnabledByDefault": false,
     "spokenPinEnabledByDefault": false,
-    "handsFreeEnabledByDefault": false,
-    "singleSwitchScanningEnabledByDefault": false,
     "microphoneRequiresUserActivation": true
   },
   "businessCore": {

@@ -49,27 +49,8 @@ function testCapabilities() {
 function testSourcesRemainSeparated() {
   const watch = readJson('governance/source-watch.json');
   assert.deepEqual(watch.sources.map((source) => source.id).sort(), ['betty', 'jarvis']);
-  assert.equal(watch.blankProgram.repository, 'gentlecar64-ship-it/app');
-  assert.equal(watch.blankProgram.accessStatus, 'pending-github-connector-access');
-  assert.equal(watch.blankProgram.syncClaim, false);
   assert.equal(watch.reviewRules.automaticActivation, false);
   assert.equal(watch.reviewRules.automaticClientDataCopy, false);
-}
-
-function testAccessibilityBaseline() {
-  const manifest = readJson('template.manifest.json');
-  const config = readJson('config/client.template.json');
-  const baselinePath = path.join(ROOT, 'governance/accessibility-baseline.md');
-  assert.equal(manifest.blankProgramSource.repository, 'gentlecar64-ship-it/app');
-  assert.equal(manifest.blankProgramSource.syncClaim, false);
-  assert.equal(manifest.accessibilityBaseline.designTarget, 'WCAG-2.2-AA');
-  assert.equal(manifest.accessibilityBaseline.europeanReference, 'EN-301-549-v3.2.1');
-  assert.equal(manifest.accessibilityBaseline.frenchAuditMethod, 'RGAA-4.1.2');
-  assert.equal(manifest.accessibilityBaseline.requiresHumanAudit, true);
-  assert.equal(manifest.accessibilityBaseline.requiresUserTesting, true);
-  assert.equal(config.accessibility.handsFreeEnabledByDefault, false);
-  assert.equal(config.accessibility.singleSwitchScanningEnabledByDefault, false);
-  assert.equal(fs.existsSync(baselinePath), true, 'Le socle accessibilité doit être documenté.');
 }
 
 function testActivationDoesNotMutateTemplate() {
@@ -102,7 +83,6 @@ testBlankIdentity();
 testNeutralRuntimeConfiguration();
 testCapabilities();
 testSourcesRemainSeparated();
-testAccessibilityBaseline();
 testActivationDoesNotMutateTemplate();
 testInvalidActivationIsRejected();
 
