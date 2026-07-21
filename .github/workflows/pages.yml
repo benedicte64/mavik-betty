@@ -30,6 +30,8 @@ jobs:
       - name: Validate MAVIK before production
         run: |
           npm run check
+          npm run check:accessibility
+          npm run check:betty
           node tests/quote-workflow-smoke.js
           node tests/reputation-client-intake-smoke.js
           node tests/jarvis-intelligence-smoke.js
@@ -42,6 +44,7 @@ jobs:
           node tests/workshop-online-smoke.js
           node tests/continuous-session-legal-admin-smoke.js
           node tests/photo-industrial-delivery-workshop-smoke.js
+          npm --prefix ../templates/mavik-client-vierge test
 
   deploy:
     needs: validate

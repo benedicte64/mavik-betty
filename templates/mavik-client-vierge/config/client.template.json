@@ -30,7 +30,16 @@
     "largeTextAvailable": true,
     "screenReaderModeAvailable": true,
     "oneHandModeAvailable": true,
-    "voiceOnlyModeAvailable": true
+    "voiceOnlyModeAvailable": true,
+    "voiceFirstEnabledByDefault": false,
+    "dailyBriefingEnabledByDefault": false,
+    "spokenPinEnabledByDefault": false,
+    "microphoneRequiresUserActivation": true
+  },
+  "businessCore": {
+    "commonWorkDomains": ["emails", "appointments", "orders", "quotes", "payments", "tasks"],
+    "activityModules": [],
+    "materialActionsRequireConfirmation": true
   },
   "authentication": {
     "firstLoginCreatesPersonalMethod": true,

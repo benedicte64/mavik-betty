@@ -96,6 +96,22 @@
       "sourceLineages": ["betty", "mavik-core"],
       "decision": "not-enabled",
       "evaluation": ["user-testing", "meaning-preservation", "critical-information", "reversibility", "role-consistency"]
+    },
+    {
+      "id": "consented-wake-phrase",
+      "title": "Permettre une phrase d'appel seulement après activation explicite du microphone pour la session",
+      "status": "candidate",
+      "sourceLineages": ["betty"],
+      "decision": "not-enabled",
+      "evaluation": ["explicit-consent", "browser-support", "on-device-processing", "visible-listening-state", "one-action-stop", "battery"]
+    },
+    {
+      "id": "secure-voice-authentication-alternative",
+      "title": "Remplacer le code oral par une passkey ou une biométrie locale lorsque l'appareil le permet",
+      "status": "candidate",
+      "sourceLineages": ["mavik-core"],
+      "decision": "not-enabled",
+      "evaluation": ["webauthn", "independent-use", "recovery", "shared-device", "audit", "spoken-secret-elimination"]
     }
   ]
 }

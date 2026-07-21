@@ -66,7 +66,9 @@ function install() {
     ['Le lien exact s’affiche dans la fenêtre DEMARRER-MAVIK.cmd.', iphoneLink],
     [HOME_UPDATE_TEST_BUTTON, '']
   ]);
-  const loginSize = writeGenerated(LOGIN_TEMPLATE, LOGIN_TARGET, logo);
+  // login.html is now a maintained accessibility application. Regenerating it from
+  // the legacy visual template would remove voice-first and screen-reader features.
+  const loginSize = fs.statSync(LOGIN_TARGET).size;
   const profileSize = writeGenerated(PROFILE_TEMPLATE, PROFILE_TARGET, logo);
   const jarvisSize = writeGenerated(JARVIS_TEMPLATE, JARVIS_TARGET, logo);
   announce();

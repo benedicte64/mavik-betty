@@ -184,6 +184,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && url.pathname === '/login') return servePage(res, 'login.html', 'Connexion introuvable');
     if (req.method === 'GET' && url.pathname === '/betty-mascot.webp') return servePublicAsset(res, 'betty-mascot.webp');
+    if (req.method === 'GET' && url.pathname === '/voice-access.js') return servePublicAsset(res, 'voice-access.js');
     if (req.method === 'GET' && url.pathname === '/calendar/mavik.ics' && calendarBridge.tokenValid(url.searchParams.get('token'))) {
       return binary(res, 200, calendarBridge.buildIcs(localStore), 'text/calendar; charset=utf-8', { 'Content-Disposition': 'inline; filename="MAVIK-Agenda.ics"' });
     }
@@ -192,7 +193,7 @@ const server = http.createServer(async (req, res) => {
       airtableConfigured: Boolean(AIRTABLE_TOKEN), airtableSync: airtableSync.status(), insights: insightsStore.status(), updater: updater.state(), diagnostics: diagnostics.readLastReport(),
       quoteWorkflow: { enabled: true, depositRate: quoteWorkflow.DEPOSIT_RATE }, quoteStudio: { enabled: true, highValueThreshold: quoteStudio.HIGH_VALUE_THRESHOLD, tariffCatalog: true, motorcycle: true }, quoteRequests: { enabled: true, directionValidation: true },
       planning: { enabled: true, capacity: planning.WORKSHOP_CAPACITY, employeeEarlyStart: true, employeeDelay: false, saturdayClosed: true, sundayClosed: true, calendarBridge: true },
-      emergencyAlert: { enabled: true, synchronized: true }, employeeFlow: { enabled: true }, leavePlanning: { enabled: true, principleThenValidation: true }, morale: { enabled: true }, reputation: { enabled: true }, internalMessaging: { enabled: true, multipleRecipients: true, channels: internalMessaging.CHANNELS.length }, softwareCompany: { enabled: true, areas: softwareCompany.AREAS.length }, bettyCore: { enabled: true, version: bettyCore.PROFILE.version, capabilities: bettyCore.CAPABILITIES.length }, operationalBrain: { enabled:true, eventBusReady:true, connectorIngestConfigured:Boolean(EVENT_INGEST_TOKEN) }, continuousVoice: { enabled: true }, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString()
+      emergencyAlert: { enabled: true, synchronized: true }, employeeFlow: { enabled: true }, leavePlanning: { enabled: true, principleThenValidation: true }, morale: { enabled: true }, reputation: { enabled: true }, internalMessaging: { enabled: true, multipleRecipients: true, channels: internalMessaging.CHANNELS.length }, softwareCompany: { enabled: true, areas: softwareCompany.AREAS.length }, bettyCore: { enabled: true, version: bettyCore.PROFILE.version, capabilities: bettyCore.CAPABILITIES.length }, operationalBrain: { enabled:true, eventBusReady:true, connectorIngestConfigured:Boolean(EVENT_INGEST_TOKEN) }, voiceAccess: { enabled:true, recognition:'browser-dependent', userActivationRequired:true }, host: HOST, uptimeSeconds: Math.round(process.uptime()), time: new Date().toISOString()
     });
     if (req.method === 'GET' && url.pathname === '/api/auth/status') return json(res, 200, { setupRequired: auth.setupRequired(), device: auth.deviceFromRequest(req), user: auth.authenticate(req) });
     if (req.method === 'GET' && url.pathname === '/api/auth/profiles') return json(res, 200, { profiles: auth.publicProfiles() });
@@ -212,8 +213,8 @@ const server = http.createServer(async (req, res) => {
     const context = auth.deviceContextFromRequest(req);
 
     if (req.method === 'GET' && url.pathname === '/assets/official-logo.png') return binary(res, 200, officialLogoBuffer(), 'image/png');
-    for (const asset of ['jarvis-quote.js', 'reputation-client.js', 'command-dock.js', 'navigation-enhancer.js', 'quote-studio-client.js', 'planning-client.js', 'morale-client.js', 'company-client.js', 'company.css', 'betty-mascot.webp']) if (req.method === 'GET' && url.pathname === `/assets/${asset}`) return servePublicAsset(res, asset);
-    if (req.method === 'GET' && (url.pathname === '/company.css' || url.pathname === '/company-client.js' || url.pathname === '/betty-mascot.webp')) return servePublicAsset(res, url.pathname.slice(1));
+    for (const asset of ['jarvis-quote.js', 'reputation-client.js', 'command-dock.js', 'navigation-enhancer.js', 'quote-studio-client.js', 'planning-client.js', 'morale-client.js', 'company-client.js', 'voice-access.js', 'company.css', 'betty-mascot.webp']) if (req.method === 'GET' && url.pathname === `/assets/${asset}`) return servePublicAsset(res, asset);
+    if (req.method === 'GET' && (url.pathname === '/company.css' || url.pathname === '/company-client.js' || url.pathname === '/voice-access.js' || url.pathname === '/betty-mascot.webp')) return servePublicAsset(res, url.pathname.slice(1));
     if (req.method === 'GET' && url.pathname.startsWith('/generated/')) return servePublicAsset(res, url.pathname);
 
     if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/alpha' || url.pathname === '/iphone')) return servePage(res, 'alpha.html', 'MAVIK GCOS introuvable', true);

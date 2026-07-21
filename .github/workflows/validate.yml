@@ -26,6 +26,13 @@ jobs:
           node-version: '20'
       - name: Syntax validation
         run: npm run check
+      - name: Voice-first accessibility and adaptive authentication
+        run: npm run check:accessibility
+      - name: Betty business core and operational brain
+        run: npm run check:betty
+      - name: Neutral client template
+        working-directory: templates/mavik-client-vierge
+        run: npm test
       - name: Quote workflow smoke test
         run: node tests/quote-workflow-smoke.js
       - name: Reputation and client intake smoke test

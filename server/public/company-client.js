@@ -11,7 +11,7 @@
     benedicte:{ id:'demo-direction', username:'benedicte', name:'Bénédicte', role:'admin' }, lina:{ id:'demo-commercial', username:'lina', name:'Lina', role:'commercial' },
     emma:{ id:'demo-secretariat', username:'emma', name:'Emma', role:'secretary' }, louis:{ id:'demo-accounting', username:'louis', name:'Louis', role:'accountant' }, nora:{ id:'demo-product', username:'nora', name:'Nora', role:'developer' }
   };
-  const DEFAULT_ACCESSIBILITY = Object.freeze({ typeToSpeak:false, textOnly:false, visualAlerts:false, reducedMotion:false, largeTargets:false, screenReaderHints:false });
+  const DEFAULT_ACCESSIBILITY = Object.freeze({ typeToSpeak:false, textOnly:false, visualAlerts:false, reducedMotion:false, largeTargets:false, screenReaderHints:false, voiceFirst:false, dailyBriefing:false, voiceGender:'auto', voiceRate:.9 });
   const CHANNELS = [
     ['general', 'Toute l’équipe'], ['commercial', 'Commercial'], ['secretariat', 'Secrétariat'],
     ['accounting', 'Comptabilité'], ['product', 'Produit & développement'], ['direction', 'Direction']
@@ -118,7 +118,11 @@
   function saveLocal() { if (localState) localStorage.setItem(STORAGE_KEY, JSON.stringify(localState)); }
   function readDemoSession() { try { const session=JSON.parse(localStorage.getItem(DEMO_SESSION_KEY)||'null'); return session?.username&&DEMO_PROFILES[session.username]?session:null; } catch { return null; } }
   function readDemoAccounts() { try { return JSON.parse(localStorage.getItem(DEMO_ACCOUNTS_KEY)||'{}'); } catch { return {}; } }
-  function normalizeAccessibility(input = {}) { return Object.fromEntries(Object.keys(DEFAULT_ACCESSIBILITY).map((key) => [key, input[key] === true])); }
+  function normalizeAccessibility(input = {}) {
+    const voice=BettyVoice.normalize(input);const normalized={typeToSpeak:input.typeToSpeak===true,textOnly:input.textOnly===true,visualAlerts:input.visualAlerts===true,reducedMotion:input.reducedMotion===true,largeTargets:input.largeTargets===true,screenReaderHints:input.screenReaderHints===true,...voice};
+    if(normalized.textOnly)normalized.voiceFirst=false;
+    return normalized;
+  }
   function activateDemoProfile(username) {
     const profile=DEMO_PROFILES[username]||DEMO_PROFILES.benedicte;localState.user={...profile};
     localState.directory=(localState.directory||[]).map((person)=>({...person,isSelf:person.id===profile.id}));
@@ -138,7 +142,14 @@
     Object.entries(classMap).forEach(([key,className])=>document.body.classList.toggle(className,activeAccessibility[key]));
     document.querySelectorAll('[data-access-feature]').forEach((button)=>button.setAttribute('aria-pressed',String(activeAccessibility[button.dataset.accessFeature]===true)));
     $('voiceButton').hidden=!activeAccessibility.typeToSpeak;
+    $('profileVoiceGender').value=activeAccessibility.voiceGender;$('profileVoiceRate').value=String(activeAccessibility.voiceRate);
+    $('commandVoiceButton').setAttribute('aria-label',activeAccessibility.voiceFirst?'Parler à Betty, mode tout à la voix actif':'Parler à Betty');
     if(activeAccessibility.reducedMotion)setMascotMotion(true);
+  }
+  function speakBetty(text,force=false){if(activeAccessibility.textOnly&&!force)return Promise.resolve(false);return BettyVoice.speak(text,activeAccessibility,{respectTextOnly:!force});}
+  function startupGreeting(firstName,priority){
+    const variants=[`Bonjour ${firstName}. Je suis contente de vous retrouver.`,`Bonjour ${firstName}. Nous allons avancer tranquillement, une étape après l’autre.`,`Bonjour ${firstName}. Je suis prête quand vous l’êtes.`];
+    const intro=variants[new Date().getDate()%variants.length];return priority?`${intro} Votre première priorité est : ${priority.title}. ${priority.why}`:`${intro} Aucune urgence n’est démontrée par les données disponibles.`;
   }
   function sum(items, key) { return (items || []).reduce((total, item) => total + Number(item[key] || 0), 0); }
   function localOverview(state) {
@@ -199,7 +210,7 @@
     if(!apiMode)return;
     try{
       const next=await api('/api/operations/brief');const nextId=next.firstRecommendation?.id||'';const changed=notify&&nextId&&nextId!==lastOperationalPriorityId;operationalBrief=next;lastOperationalPriorityId=nextId;updateOperationalIndicators();updateBettyPriority();
-      if(changed){$('bettyAnswer').textContent=`Nouvelle priorité détectée : ${next.firstRecommendation.title}. ${next.firstRecommendation.why}`;toast('Betty a recalculé les priorités.');}
+      if(changed){const announcement=`Nouvelle priorité détectée : ${next.firstRecommendation.title}. ${next.firstRecommendation.why}`;$('bettyAnswer').textContent=announcement;if(activeAccessibility.voiceFirst)speakBetty(announcement);toast('Betty a recalculé les priorités.');}
       if(currentView==='dashboard')render();
     }catch{}
   }
@@ -211,8 +222,8 @@
       apiMode = false;const session=readDemoSession();if(!session){location.replace('login.html?next=company.html');return;}localState = loadLocal();activateDemoProfile(session.username);overview = localOverview(localState); operationalBrief=demoOperationalBrief();calendarSettings = { calendars: localState.calendars, configured: localState.calendars.some((item) => item.configured), feedUrl: '' }; messages = localState.messages; directory = localState.directory;
     }
     const allowed=new Set((overview.areas||[]).map((area)=>area.id));const requested=new URLSearchParams(location.search).get('view');const roleHome=ROLE_HOME[overview.user?.role]||'dashboard';currentView=requested&&(requested==='dashboard'||requested==='calendar'||requested==='messages'||allowed.has(requested))?requested:(allowed.has(roleHome)?roleHome:'dashboard');
-    const first=operationalBrief?.firstRecommendation;applyAccessMode(overview.user?.accessMode||overview.user?.preferences?.accessMode||'comfortable');applyAccessibility(overview.user?.accessibility||overview.user?.preferences?.accessibility);$('profileButtonLabel').textContent=overview.user?.name||'Profil';$('bettyAnswer').textContent=first?`Bonjour ${String(overview.user?.name||'').split(' ')[0]||''}. Ma priorité n°1 est : ${first.title}. ${first.why}`:`Bonjour ${String(overview.user?.name||'').split(' ')[0]||''}. ${operationalBrief?.promise||'Je suis prête à travailler avec vous.'}`;
-    updateOperationalIndicators();lastOperationalPriorityId=operationalBrief?.firstRecommendation?.id||'';render();updateBettyPriority();setTimeout(()=>$('bettyInput').focus(),150);if(apiMode)setInterval(()=>pollOperationalBrain(true),30000);
+    const first=operationalBrief?.firstRecommendation;applyAccessMode(overview.user?.accessMode||overview.user?.preferences?.accessMode||'comfortable');applyAccessibility(overview.user?.accessibility||overview.user?.preferences?.accessibility);$('profileButtonLabel').textContent=overview.user?.name||'Profil';const greeting=startupGreeting(String(overview.user?.name||'').split(' ')[0]||'',first);$('bettyAnswer').textContent=greeting;
+    updateOperationalIndicators();lastOperationalPriorityId=operationalBrief?.firstRecommendation?.id||'';render();updateBettyPriority();setTimeout(()=>$(activeAccessibility.voiceFirst?'commandVoiceButton':'bettyInput').focus(),150);if(activeAccessibility.voiceFirst||activeAccessibility.dailyBriefing)speakBetty(greeting);if(apiMode)setInterval(()=>pollOperationalBrain(true),30000);
   }
 
   function metric(label, value, detail, toneValue = 'rgba(103,65,236,.11)') { return `<article class="metric-card" style="--tone:${toneValue}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(detail)}</span></article>`; }
@@ -377,28 +388,52 @@
   });
 
   let pendingBettyCommand='';
-  function localBetty(command) {
+  function localBetty(command,confirmed=false) {
     const normalized=command.toLowerCase();let answer='Je peux ouvrir un service, préparer une action ou résumer les priorités.';let view='';
-    if(/commercial|vente|prospect|pipeline/.test(normalized)){view='commercial';answer=`Le pipeline actif représente ${money(overview.metrics.pipeline)}, dont ${money(overview.metrics.weightedPipeline)} pondérés.`;}
+    const counts=operationalBrief?.counts||{};
+    const taskMatch=command.match(/(?:ajoute|crée|cree|prépare|prepare)\s+(?:une\s+)?tâche\s*[:\-]?\s*(.+)/i);
+    if(taskMatch&&!['admin','associate','commercial','secretary','accountant','developer','support','technician'].includes(localState.user?.role))return{answer:'Votre rôle peut consulter les tâches, mais ne peut pas en créer.',view:'dashboard',requiresConfirmation:false};
+    if(taskMatch&&!confirmed)return{answer:`Je peux créer la tâche « ${taskMatch[1].trim()} ». Dites confirmer ou annuler.`,view:'dashboard',requiresConfirmation:true,proposedAction:{type:'create-task',title:taskMatch[1].trim(),originalText:command}};
+    if(taskMatch&&confirmed){const task={id:uuid(),title:taskMatch[1].trim(),status:'À faire',priority:/urgent/i.test(normalized)?'Urgente':'Normale',dueDate:day(1),assignee:ROLE_LABELS[localState.user?.role]||localState.user?.name,department:ROLE_HOME[localState.user?.role]||'dashboard',createdAt:new Date().toISOString()};localState.tasks.unshift(task);saveLocal();overview=localOverview(localState);operationalBrief=demoOperationalBrief();return{answer:`C’est fait. La tâche « ${task.title} » est enregistrée dans cette démonstration.`,view:'dashboard',requiresConfirmation:false};}
+    if(/comment (vas|allez)|ça va|ca va/.test(normalized)){answer='Je vais bien, merci. Et je suis surtout disponible pour vous aider sans vous presser. Par quoi souhaitez-vous commencer ?';}
+    else if(/^(bonjour|salut|coucou)( betty)?[.! ]*$/.test(normalized.trim())){answer='Bonjour. Je suis là. Souhaitez-vous entendre vos priorités ou me demander directement quelque chose ?';}
+    else if(/météo|meteo|quel temps|température/.test(normalized)){answer='Je n’ai pas de source météo en direct connectée. Je préfère vous le dire plutôt que d’inventer. Un module météo localisé pourra être ajouté avec votre accord.';}
+    else if(/mail|courriel|boîte de réception|boite de reception/.test(normalized)){answer=apiMode?`${Number(counts.customerReplies||0)} réponse(s) client sont signalées par les sources autorisées. Je peux préparer leur traitement, mais un envoi demandera votre confirmation.`:'Aucune boîte mail réelle n’est connectée dans cette démonstration. Je peux néanmoins vous montrer le futur parcours de tri.';}
+    else if(/commande|fournisseur|achat/.test(normalized)){answer=`${Number(counts.supplierActions||0)} action(s) fournisseur sont signalées. Une commande ne sera jamais envoyée sans votre confirmation explicite.`;view='dashboard';}
+    else if(/devis|proposition/.test(normalized)){answer=`${Number(counts.quotesToProcess||0)} devis sont signalés à traiter. Je peux préparer un brouillon puis demander la validation du prix et du destinataire.`;view='commercial';}
+    else if(/règlement|reglement|paiement|encaissement/.test(normalized)){view='accounting';answer=`Il reste ${money(overview.metrics.unpaidInvoices)} à encaisser. Je peux préparer les relances, mais je ne déclenche aucun paiement et ne change aucun statut financier sans validation.`;}
+    else if(/commercial|vente|prospect|pipeline/.test(normalized)){view='commercial';answer=`Le pipeline actif représente ${money(overview.metrics.pipeline)}, dont ${money(overview.metrics.weightedPipeline)} pondérés.`;}
     else if(/agenda|calendrier|rendez/.test(normalized)){view='calendar';answer=`J’ai regroupé ${nextMeetings(30).length} rendez-vous MAVIK.`;}
     else if(/facture|impay|compta|trésor/.test(normalized)){view='accounting';answer=`Il reste ${money(overview.metrics.unpaidInvoices)} à encaisser.`;}
     else if(/message|équipe|interne/.test(normalized)){view='messages';answer='J’ouvre la discussion interne.';}
     else if(/projet|produit|dévelop/.test(normalized)){view='product';answer=`${overview.metrics.openProjects} projet(s) logiciel(s) et ${overview.metrics.openTickets} ticket(s) support sont ouverts.`;}
     else if(/direction|indicateur|performance/.test(normalized)){view='direction';answer=`Le MRR actuel est de ${money(overview.metrics.mrr)} et le pipeline pondéré de ${money(overview.metrics.weightedPipeline)}.`;}
-    else if(/quoi|priorit|aujourd/.test(normalized)){const priority=operationalBrief?.firstRecommendation;answer=priority?`La priorité n°1 est : ${priority.title}. ${priority.why}`:'Aucune urgence n’est démontrée par les données disponibles.';view=priority?.view||'dashboard';}
+    else if(/quoi|priorit|aujourd|tâche|tache/.test(normalized)){const priority=operationalBrief?.firstRecommendation;answer=`Voici votre point de travail : ${Number(counts.customerReplies||0)} réponse client, ${Number(counts.appointmentsToday||0)} rendez-vous, ${Number(counts.quotesToProcess||0)} devis, ${Number(counts.supplierActions||0)} action fournisseur et ${Number(counts.urgentItems||0)} urgence. ${priority?`Je vous propose de commencer par ${priority.title}. ${priority.why}`:'Aucune urgence n’est démontrée.'}`;view=priority?.view||'dashboard';}
     return{answer,view,requiresConfirmation:false};
   }
-  async function askBetty(command,confirmed=false) {
+  function voiceErrorMessage(error){return error?.code==='not-allowed'||error?.message==='not-allowed'?'Le microphone n’est pas autorisé. Vous pouvez l’autoriser dans le navigateur ou utiliser le clavier.':BettyVoice.supported()?'Je n’ai pas compris. Appuyez de nouveau sur Parler à Betty pour réessayer.':'La reconnaissance vocale n’est pas disponible dans ce navigateur. Le clavier et le lecteur d’écran restent disponibles.';}
+  async function listenForConfirmation(){
+    $('voiceCommandStatus').textContent='Je vous écoute pour confirmer ou annuler.';
+    try{const heard=(await BettyVoice.listenOnce()).toLowerCase();if(/confirme|confirmé|oui|d'accord|vas-y/.test(heard))return askBetty(pendingBettyCommand,true,true);if(/annule|non|stop|arrête/.test(heard)){cancelBettyAction();return speakBetty('Action annulée. Aucune donnée n’a été modifiée.',true);}$('voiceCommandStatus').textContent='Répondez confirmer ou annuler.';await speakBetty('Je n’ai pas compris votre décision. Dites confirmer ou annuler.',true);}catch(error){$('voiceCommandStatus').textContent=voiceErrorMessage(error);}
+  }
+  function cancelBettyAction(){$('bettyActions').innerHTML='';$('bettyAnswer').textContent='Action annulée. Aucune donnée n’a été modifiée.';pendingBettyCommand='';$('voiceCommandStatus').textContent='Action annulée.';}
+  async function askBetty(command,confirmed=false,fromVoice=false) {
     const text=String(command||'').trim();if(!text)return;$('bettyAnswer').textContent=confirmed?'Je confirme l’action…':'Je consulte votre espace…';$('bettyActions').innerHTML='';
     try{
-      const response=apiMode?await api('/api/betty/command',{method:'POST',body:JSON.stringify({text,confirmed})}):localBetty(text);
+      const response=apiMode?await api('/api/betty/command',{method:'POST',body:JSON.stringify({text,confirmed})}):localBetty(text,confirmed);
       $('bettyAnswer').textContent=response.answer||'Je suis prête.';if(response.view)await navigate(response.view);
       if(response.requiresConfirmation){pendingBettyCommand=response.proposedAction?.originalText||text;$('bettyActions').innerHTML='<button class="confirm" type="button" data-betty-confirm>Confirmer</button><button type="button" data-betty-cancel>Annuler</button>';}
       else pendingBettyCommand='';
-    }catch(error){$('bettyAnswer').textContent=`Je n’ai pas pu terminer : ${error.message}`;}
+      if(activeAccessibility.voiceFirst||fromVoice){await speakBetty(response.answer||'Je suis prête.',fromVoice);if(response.requiresConfirmation&&fromVoice)await listenForConfirmation();}
+      $('voiceCommandStatus').textContent='Microphone inactif. Raccourci : Alt + B.';
+    }catch(error){const answer=`Je n’ai pas pu terminer : ${error.message}`;$('bettyAnswer').textContent=answer;if(activeAccessibility.voiceFirst||fromVoice)speakBetty(answer,fromVoice);}
   }
   $('bettyForm').addEventListener('submit',(event)=>{event.preventDefault();const input=$('bettyInput');const command=input.value;input.value='';askBetty(command);});
-  $('bettyActions').addEventListener('click',(event)=>{if(event.target.closest('[data-betty-confirm]'))askBetty(pendingBettyCommand,true);if(event.target.closest('[data-betty-cancel]')){$('bettyActions').innerHTML='';$('bettyAnswer').textContent='Action annulée. Aucune donnée n’a été modifiée.';pendingBettyCommand='';}});
+  $('bettyActions').addEventListener('click',(event)=>{if(event.target.closest('[data-betty-confirm]'))askBetty(pendingBettyCommand,true);if(event.target.closest('[data-betty-cancel]'))cancelBettyAction();});
+  let voiceTurnRunning=false;
+  async function runVoiceTurn(){if(voiceTurnRunning)return;voiceTurnRunning=true;const button=$('commandVoiceButton');button.classList.add('listening');button.textContent='● Je vous écoute…';$('voiceCommandStatus').textContent='Parlez maintenant. Une seule demande à la fois.';try{const heard=await BettyVoice.listenOnce();$('voiceCommandStatus').textContent=`Demande comprise : ${heard}`;if(pendingBettyCommand&&/confirme|confirmé|oui|d'accord|vas-y/i.test(heard))await askBetty(pendingBettyCommand,true,true);else if(pendingBettyCommand&&/annule|non|stop|arrête/i.test(heard)){cancelBettyAction();await speakBetty('Action annulée. Aucune donnée n’a été modifiée.',true);}else await askBetty(heard,false,true);}catch(error){const answer=voiceErrorMessage(error);$('voiceCommandStatus').textContent=answer;await speakBetty(answer,true);}finally{voiceTurnRunning=false;button.classList.remove('listening');button.textContent='🎙 Parler à Betty';}}
+  $('commandVoiceButton').addEventListener('click',runVoiceTurn);
+  document.addEventListener('keydown',(event)=>{if(event.altKey&&event.key.toLowerCase()==='b'){event.preventDefault();runVoiceTurn();}});
   document.querySelectorAll('[data-betty]').forEach((button)=>button.addEventListener('click',()=>askBetty(button.dataset.betty)));
   $('mobileMenu').addEventListener('click',()=>document.querySelector('.company-sidebar').classList.toggle('open'));
   $('profileButton').addEventListener('click',()=>{
@@ -410,10 +445,14 @@
     const accounts=readDemoAccounts(),username=localState.user?.username;if(accounts[username]){accounts[username].accessMode=mode;localStorage.setItem(DEMO_ACCOUNTS_KEY,JSON.stringify(accounts));}overview.user.accessMode=mode;$('profileStatus').textContent='Adaptation enregistrée dans ce profil.';
   }));
   document.querySelectorAll('[data-access-feature]').forEach((button)=>button.addEventListener('click',async()=>{
-    const next={...activeAccessibility,[button.dataset.accessFeature]:!activeAccessibility[button.dataset.accessFeature]};applyAccessibility(next);
+    const key=button.dataset.accessFeature;const next={...activeAccessibility,[key]:!activeAccessibility[key]};if(key==='voiceFirst'&&next.voiceFirst)next.textOnly=false;if(key==='textOnly'&&next.textOnly)next.voiceFirst=false;applyAccessibility(next);
     if(apiMode){try{const data=await api('/api/profile',{method:'PATCH',body:JSON.stringify({preferences:{accessibility:next}})});activeAccessibility=normalizeAccessibility(data.user?.preferences?.accessibility||next);applyAccessibility(activeAccessibility);$('profileStatus').textContent='Façon de travailler enregistrée.';}catch(error){$('profileStatus').textContent=error.message;}return;}
     const accounts=readDemoAccounts(),username=localState.user?.username;accounts[username]={...(accounts[username]||{}),accessibility:next};localStorage.setItem(DEMO_ACCOUNTS_KEY,JSON.stringify(accounts));overview.user.accessibility=next;$('profileStatus').textContent='Façon de travailler enregistrée dans ce profil.';
   }));
+  async function saveVoiceSetting(patch){const next={...activeAccessibility,...patch};applyAccessibility(next);if(apiMode){try{const data=await api('/api/profile',{method:'PATCH',body:JSON.stringify({preferences:{accessibility:next}})});applyAccessibility(data.user?.preferences?.accessibility||next);$('profileStatus').textContent='Voix enregistrée pour ce profil.';}catch(error){$('profileStatus').textContent=error.message;}return;}const accounts=readDemoAccounts(),username=localState.user?.username;accounts[username]={...(accounts[username]||{}),accessibility:next};localStorage.setItem(DEMO_ACCOUNTS_KEY,JSON.stringify(accounts));overview.user.accessibility=next;$('profileStatus').textContent='Voix enregistrée dans ce profil.';}
+  $('profileVoiceGender').addEventListener('change',()=>saveVoiceSetting({voiceGender:$('profileVoiceGender').value}));
+  $('profileVoiceRate').addEventListener('change',()=>saveVoiceSetting({voiceRate:Number($('profileVoiceRate').value)}));
+  $('testBettyVoice').addEventListener('click',()=>speakBetty('Bonjour. Je suis Betty. Nous allons travailler calmement, ensemble.',true));
   $('fullProfile').addEventListener('click',()=>{location.href='/profile';});
   $('switchProfile').addEventListener('click',()=>{if(apiMode){location.href='/login';return;}localStorage.removeItem(DEMO_SESSION_KEY);location.replace('login.html?next=company.html&switch=1');});
   $('bettyToggle').addEventListener('click',()=>{const panel=document.querySelector('.betty-panel');const collapsed=panel.classList.toggle('collapsed');$('bettyToggle').textContent=collapsed?'+':'−';$('bettyToggle').setAttribute('aria-expanded',String(!collapsed));});
@@ -422,8 +461,8 @@
   setMascotMotion(matchMedia('(prefers-reduced-motion: reduce)').matches||localStorage.getItem('mavik-betty-motion')==='paused');
   $('voiceButton').addEventListener('click',()=>{$('voiceStatus').textContent='';$('communicationDialog').showModal();setTimeout(()=>$('voiceText').focus(),50);});
   document.querySelectorAll('[data-phrase]').forEach((button)=>button.addEventListener('click',()=>{$('voiceText').value=button.dataset.phrase;$('voiceText').focus();}));
-  $('speakText').addEventListener('click',()=>{const phrase=$('voiceText').value.trim();if(!phrase){$('voiceStatus').textContent='Écrivez d’abord une phrase.';return;}if(!('speechSynthesis' in window)){$('voiceStatus').textContent='La voix de l’appareil n’est pas disponible. Le texte reste affiché.';return;}speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(phrase);utterance.lang='fr-FR';utterance.rate=.92;utterance.onstart=()=>{$('voiceStatus').textContent='Betty parle…';};utterance.onend=()=>{$('voiceStatus').textContent='Phrase terminée.';};utterance.onerror=()=>{$('voiceStatus').textContent='La voix n’a pas pu être utilisée. Le texte reste affiché.';};speechSynthesis.speak(utterance);});
-  $('stopSpeaking').addEventListener('click',()=>{if('speechSynthesis' in window)speechSynthesis.cancel();$('voiceStatus').textContent='Voix arrêtée.';});
+  $('speakText').addEventListener('click',async()=>{const phrase=$('voiceText').value.trim();if(!phrase){$('voiceStatus').textContent='Écrivez d’abord une phrase.';return;}if(!BettyVoice.synthesisSupported()){$('voiceStatus').textContent='La voix de l’appareil n’est pas disponible. Le texte reste affiché.';return;}$('voiceStatus').textContent='Betty parle…';const spoken=await BettyVoice.speak(phrase,activeAccessibility);$('voiceStatus').textContent=spoken?'Phrase terminée.':'La voix n’a pas pu être utilisée. Le texte reste affiché.';});
+  $('stopSpeaking').addEventListener('click',()=>{BettyVoice.stopSpeaking();$('voiceStatus').textContent='Voix arrêtée.';});
 
   initialize();
 })();

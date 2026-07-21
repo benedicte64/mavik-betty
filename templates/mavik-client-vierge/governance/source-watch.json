@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "checkedAt": "2026-07-20",
+  "checkedAt": "2026-07-21",
   "repositoryAccess": {
     "available": ["benedicte64/mavik-betty"],
     "unavailable": ["gentlecar64-ship-it/-jarvis-gentlecare"],
@@ -12,7 +12,7 @@
       "label": "Profil de démonstration Betty",
       "repository": "benedicte64/mavik-betty",
       "branch": "main",
-      "repositoryCursor": "917ead926a6943ca0cd9c62c39a765e10e3c9a05",
+      "repositoryCursor": "2bc1ce83cfd3cbdf68e963468527093510de5126",
       "paths": [
         "server/betty-core.js",
         "server/operational-event-bus.js",
@@ -28,7 +28,7 @@
       "label": "Lignée métier Jarvis",
       "repository": "benedicte64/mavik-betty",
       "branch": "main",
-      "repositoryCursor": "917ead926a6943ca0cd9c62c39a765e10e3c9a05",
+      "repositoryCursor": "2bc1ce83cfd3cbdf68e963468527093510de5126",
       "lastFeatureCommit": "cdf4404ff730ee26673684ed09ad7edcdac707ac",
       "paths": [
         "server/jarvis*.js",

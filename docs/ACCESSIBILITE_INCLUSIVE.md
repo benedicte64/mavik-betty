@@ -27,6 +27,11 @@ Plusieurs choix peuvent être combinés. Ils appartiennent au profil de la perso
 - outil **Ma voix** : l'utilisateur écrit jusqu'à 600 caractères et Betty les prononce localement sur l'appareil ;
 - mémorisation séparée des préférences pour chaque utilisateur ;
 - options désactivées tant que l'utilisateur ne les choisit pas.
+- mode **Tout à la voix** par profil, avec choix d'un rythme calme, doux ou normal ;
+- sélection du profil et saisie du code oral après activation volontaire du microphone ;
+- bouton permanent **Parler à Betty** et raccourci `Alt+B` ;
+- briefing vocal optionnel sur les e-mails, rendez-vous, commandes, devis, règlements et tâches ;
+- confirmation ou annulation orale avant toute écriture proposée par Betty.
 
 La synthèse vocale de **Ma voix** utilise le moteur disponible dans le navigateur ou l'appareil. MAVIK ne conserve pas le texte saisi. Pour des informations sensibles, l'installation devra sélectionner et vérifier une voix fonctionnant hors ligne, car le traitement exact dépend du navigateur et du système.
 
@@ -36,8 +41,8 @@ La présence de réglages ne constitue pas une certification. Un audit technique
 
 Les capacités suivantes restent à prototyper puis à valider avant toute activation :
 
-- transcription en direct de la parole vers le texte ;
-- commande vocale complète ;
+- transcription continue ou multi-intervenants de la parole vers le texte ;
+- phrase d'appel en écoute continue ;
 - langue des signes avec interprétation humaine ou avatar validé ;
 - navigation par contacteur avec défilement contrôlé ;
 - pilotage oculaire et compatibilité avec les dispositifs AAC/CAA ;
@@ -55,6 +60,10 @@ Les capacités suivantes restent à prototyper puis à valider avant toute activ
 5. Une action importante demande la même validation humaine, quel que soit le mode d'interaction.
 6. Les préférences sont réversibles et conservées séparément pour chaque utilisateur.
 7. Les nouveautés sont testées avec des utilisateurs concernés avant d'être qualifiées d'éprouvées.
+8. La voix seule ne suffit jamais pour un paiement ou une opération financière sensible.
+9. Betty ne prétend jamais disposer d'une source réelle qui n'est pas connectée.
+
+Le parcours détaillé pour une personne aveugle est décrit dans `MODE_VOCAL_AVEUGLE.md`.
 
 ## Référentiels de contrôle
 

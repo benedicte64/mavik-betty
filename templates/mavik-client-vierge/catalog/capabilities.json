@@ -235,6 +235,24 @@
       "maturity": "candidate",
       "enabledByDefault": false,
       "humanValidation": "user-choice-voice-and-privacy"
+    },
+    {
+      "id": "voice-first-guided-work",
+      "label": "Parcours de travail vocal guidé, question par question",
+      "domain": "accessibility",
+      "sourceLineages": ["betty", "mavik-core"],
+      "maturity": "candidate",
+      "enabledByDefault": false,
+      "humanValidation": "user-choice-device-privacy-and-field-test"
+    },
+    {
+      "id": "generic-business-work-brief",
+      "label": "Briefing commun sur e-mails, rendez-vous, commandes, devis, règlements et tâches",
+      "domain": "operations",
+      "sourceLineages": ["betty", "mavik-core"],
+      "maturity": "candidate",
+      "enabledByDefault": false,
+      "humanValidation": "role-scope-source-and-action"
     }
   ]
 }

@@ -2,10 +2,11 @@
 
 const operationalBrain = require('./operational-brain');
 
-const PROFILE = Object.freeze({ owner:'Avenor', product:'MAVIK', assistant:'Betty', version:'1.0.0', model:'adaptive-business-core' });
+const PROFILE = Object.freeze({ owner:'Avenor', product:'MAVIK', assistant:'Betty', version:'1.1.0', model:'adaptive-business-core' });
 const CAPABILITIES = Object.freeze([
   'Mémoire métier persistante', 'Journal d’audit', 'Gestionnaire de tâches', 'Centre de notifications',
-  'Base documentaire', 'Analyse de procédures', 'Suggestions décisionnelles avec validation humaine'
+  'Base documentaire', 'Analyse de procédures', 'Suggestions décisionnelles avec validation humaine',
+  'Dialogue vocal guidé avec confirmation humaine'
 ]);
 const ROLE_LABELS = Object.freeze({ admin:'Direction', associate:'Direction', commercial:'Commercial', secretary:'Secrétariat', accountant:'Comptabilité', developer:'Produit & développement', support:'Support', technician:'Opérations', trainee:'Découverte' });
 const ROLE_HOME = Object.freeze({ admin:'direction', associate:'direction', commercial:'commercial', secretary:'secretariat', accountant:'accounting', developer:'product', support:'product', technician:'dashboard', trainee:'dashboard' });
@@ -86,12 +87,31 @@ function metrics(store, user = {}) {
   };
 }
 
+function workSummary(store, user = {}) {
+  const role = user.role || 'trainee';
+  const can = {
+    emails: ['admin','associate','commercial','secretary','support'].includes(role),
+    appointments: true,
+    orders: ['admin','associate','secretary','accountant'].includes(role),
+    quotes: ['admin','associate','commercial'].includes(role),
+    payments: ['admin','associate','accountant'].includes(role)
+  };
+  const records = {
+    emails: can.emails ? safeList(store,'communications').filter((item) => open(item.status)) : [],
+    appointments: safeList(store,'meetings').filter((item) => open(item.status)),
+    orders: can.orders ? safeList(store,'purchaseOrders').filter((item) => open(item.status)) : [],
+    quotes: can.quotes ? safeList(store,'quotes').filter((item) => open(item.status)) : [],
+    payments: can.payments ? safeList(store,'invoices').filter((item) => open(item.status)) : []
+  };
+  return { can, counts:Object.fromEntries(Object.entries(records).map(([key,items]) => [key, can[key] ? items.length : 0])) };
+}
+
 function brief(store, user = {}) {
-  const alerts = notifications(store, user); const recommendations = suggestions(store, user); const summary = metrics(store, user); const operations = operationalBrain.brief(store,user);
+  const alerts = notifications(store, user); const recommendations = suggestions(store, user); const summary = metrics(store, user); const operations = operationalBrain.brief(store,user); const work=workSummary(store,user);
   return {
     profile:PROFILE, capabilities:CAPABILITIES, user:{ id:user.id || '', name:user.name || user.username || '', role:user.role || 'trainee', roleLabel:ROLE_LABELS[user.role] || user.role || 'Utilisateur', home:ROLE_HOME[user.role] || 'dashboard' },
     greeting:`Bonjour ${firstName(user)}. Je vois ${summary.pendingTasks} tâche(s) en attente et ${alerts.length} alerte(s) utiles pour votre espace ${ROLE_LABELS[user.role] || 'MAVIK'}.`,
-    metrics:summary, notifications:alerts, suggestions:recommendations, operations, memory:memory(store,user,5),
+    metrics:summary, work, notifications:alerts, suggestions:recommendations, operations, memory:memory(store,user,5),
     principles:{ humanValidation:true, traceability:true, explainedRecommendations:true, clientNeutral:true }
   };
 }
@@ -102,7 +122,7 @@ function result(store, user, input, value) {
 }
 
 function execute(store, input = {}, user = {}) {
-  const request = text(input.text); const query = normalized(request); const summary = metrics(store,user);
+  const request = text(input.text); const query = normalized(request); const summary = metrics(store,user); const work=workSummary(store,user); const operations=operationalBrain.brief(store,user);
   if (!request) return result(store,user,input,{ intent:'help', answer:'Dites-moi ce que vous voulez préparer, vérifier ou comprendre.', view:ROLE_HOME[user.role] || 'dashboard' });
   const taskMatch=request.match(/(?:ajoute|crée|cree|prépare|prepare)\s+(?:une\s+)?tâche\s*[:\-]?\s*(.+)/i);
   if (taskMatch && !TASK_DEPARTMENTS[user.role]) return result(store,user,input,{ intent:'access-denied', answer:'Votre profil peut consulter les tâches, mais ne peut pas en créer.', view:'dashboard', explanation:'Betty applique les droits d’écriture de votre rôle avant de proposer une action.' });
@@ -112,10 +132,18 @@ function execute(store, input = {}, user = {}) {
     audit(store,user,'task.created',{ recordId:task.id, title:task.title, humanValidated:true });
     return result(store,user,input,{ intent:'create-task-confirmed', answer:`C’est fait. La tâche « ${task.title} » est enregistrée et tracée.`, view:'dashboard', data:{ task }, explanation:'L’action a été exécutée après votre confirmation explicite.' });
   }
-  if (/bonjour|priorit|point du jour|résumé|resume|que dois-je|quoi faire/.test(query)) {
+  if (/comment (vas|allez)|ça va|ca va/.test(query)) return result(store,user,input,{ intent:'small-talk', answer:'Je vais bien, merci. Je suis là pour vous aider sans vous presser. Par quoi souhaitez-vous commencer ?', view:ROLE_HOME[user.role] || 'dashboard' });
+  if (/^(bonjour|salut|coucou)( betty)?[.! ]*$/.test(query)) return result(store,user,input,{ intent:'greeting', answer:`Bonjour ${firstName(user)}. Je suis là. Souhaitez-vous entendre vos priorités ou me demander directement quelque chose ?`, view:ROLE_HOME[user.role] || 'dashboard' });
+  if (/météo|meteo|quel temps|température/.test(query)) return result(store,user,input,{ intent:'weather-unavailable', answer:'Je n’ai pas de source météo en direct connectée. Je préfère vous le dire plutôt que d’inventer. Un module météo localisé pourra être activé avec votre accord.', view:ROLE_HOME[user.role] || 'dashboard', explanation:'Betty signale explicitement l’absence de source au lieu de produire une information non vérifiée.' });
+  if (/mail|courriel|boîte de réception|boite de reception/.test(query)) return work.can.emails ? result(store,user,input,{ intent:'emails', answer:`${work.counts.emails} échange(s) restent à traiter dans les sources autorisées. Je peux les résumer ou préparer une réponse ; l’envoi demandera votre confirmation.`, view:user.role === 'commercial' ? 'commercial' : user.role === 'support' ? 'product' : 'secretariat', data:{ count:work.counts.emails } }) : result(store,user,input,{ intent:'access-denied', answer:'Votre rôle ne permet pas de consulter les e-mails de l’entreprise.', view:ROLE_HOME[user.role] || 'dashboard' });
+  if (/commande|fournisseur|achat/.test(query)) return work.can.orders ? result(store,user,input,{ intent:'orders', answer:`${work.counts.orders || operations.counts?.supplierActions || 0} commande(s) ou action(s) fournisseur sont à suivre. Toute commande reste soumise à votre confirmation explicite.`, view:'dashboard', data:{ count:work.counts.orders } }) : result(store,user,input,{ intent:'access-denied', answer:'Votre rôle ne permet pas de consulter ou préparer les commandes.', view:ROLE_HOME[user.role] || 'dashboard' });
+  if (/devis|proposition commerciale/.test(query)) return work.can.quotes ? result(store,user,input,{ intent:'quotes', answer:`${work.counts.quotes || operations.counts?.quotesToProcess || 0} devis sont à traiter. Je peux préparer un brouillon ; le prix, le destinataire et l’envoi devront être validés.`, view:'commercial', data:{ count:work.counts.quotes } }) : result(store,user,input,{ intent:'access-denied', answer:'Votre rôle ne permet pas de consulter les devis.', view:ROLE_HOME[user.role] || 'dashboard' });
+  if (/règlement|reglement|paiement|encaissement/.test(query)) return work.can.payments ? result(store,user,input,{ intent:'payments', answer:`${work.counts.payments} facture(s) restent ouvertes, pour ${money(summary.unpaidInvoices)}. Je peux préparer les relances, mais je ne déclenche aucun paiement et ne change aucun statut financier sans validation.`, view:'accounting', data:{ count:work.counts.payments, amount:summary.unpaidInvoices } }) : result(store,user,input,{ intent:'access-denied', answer:'Votre rôle ne permet pas de consulter les règlements.', view:ROLE_HOME[user.role] || 'dashboard' });
+  if (/priorit|point du jour|résumé|resume|que dois-je|quoi faire|tâches du jour|taches du jour/.test(query)) {
     const data = brief(store,user); const operational = data.operations.firstRecommendation; const first = operational || data.suggestions[0];
     const reason = operational?.why || first?.reason || '';
-    return result(store,user,input,{ intent:'daily-brief', answer:first?`${data.greeting} Ma priorité n°1 : ${first.title}. ${reason}`:data.greeting, view:first?.view || data.user.home, data });
+    const counts=data.operations.counts||{};const base=`Votre point de travail contient ${Number(counts.customerReplies||data.work.counts.emails)} réponse(s) ou échange(s), ${Number(counts.appointmentsToday||0)} rendez-vous, ${Number(counts.quotesToProcess||data.work.counts.quotes)} devis et ${Number(counts.supplierActions||data.work.counts.orders)} action(s) fournisseur.`;
+    return result(store,user,input,{ intent:'daily-brief', answer:first?`${base} Ma priorité n°1 : ${first.title}. ${reason}`:`${base} ${data.greeting}`, view:first?.view || data.user.home, data });
   }
   if (/commercial|vente|prospect|pipeline|abonnement/.test(query)) return allowed(user,'commercial') ? result(store,user,input,{ intent:'commercial', answer:`Le pipeline actif est de ${money(summary.pipeline)}, dont ${money(summary.weightedPipeline)} pondérés.`, view:'commercial', data:{ metrics:summary } }) : result(store,user,input,{ intent:'access-denied', answer:'Cet espace commercial n’est pas autorisé pour votre rôle.', view:ROLE_HOME[user.role] || 'dashboard', explanation:'Betty applique les droits de votre profil avant de consulter les données.' });
   if (/compta|comptab|facture|impay|trésor/.test(query)) return allowed(user,'accounting') ? result(store,user,input,{ intent:'accounting', answer:`Le montant des factures encore ouvertes est de ${money(summary.unpaidInvoices)}.`, view:'accounting', data:{ metrics:summary } }) : result(store,user,input,{ intent:'access-denied', answer:'Cet espace comptable n’est pas autorisé pour votre rôle.', view:ROLE_HOME[user.role] || 'dashboard', explanation:'Betty applique les droits de votre profil avant de consulter les données.' });
@@ -129,4 +157,4 @@ function execute(store, input = {}, user = {}) {
   return result(store,user,input,{ intent:'help', answer:`Je peux résumer vos priorités, ouvrir votre espace ${ROLE_LABELS[user.role] || 'métier'}, consulter la mémoire, analyser les documents ou préparer une action à confirmer.`, view:ROLE_HOME[user.role] || 'dashboard' });
 }
 
-module.exports = { PROFILE, CAPABILITIES, ROLE_HOME, audit, remember, memory, notifications, suggestions, metrics, brief, execute };
+module.exports = { PROFILE, CAPABILITIES, ROLE_HOME, audit, remember, memory, notifications, suggestions, metrics, workSummary, brief, execute };

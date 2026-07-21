@@ -31,9 +31,19 @@ const commercial={ id:'commercial-1', name:'Lina', role:'commercial' };
 const brief=betty.brief(store,direction);
 assert.equal(brief.profile.assistant,'Betty');
 assert.equal(brief.profile.owner,'Avenor');
-assert.equal(brief.capabilities.length,7);
+assert.equal(brief.capabilities.length,8);
 assert.equal(brief.principles.humanValidation,true);
 assert.ok(brief.notifications.some((item)=>item.type==='invoice'));
+assert.equal(brief.work.can.payments,true);
+
+const hello=betty.execute(store,{ text:'Bonjour Betty' },direction);
+assert.equal(hello.intent,'greeting');
+const weather=betty.execute(store,{ text:'Quel temps fait-il ?' },direction);
+assert.equal(weather.intent,'weather-unavailable');
+assert.match(weather.answer,/pas de source météo en direct/);
+const payments=betty.execute(store,{ text:'Quels règlements faut-il suivre ?' },direction);
+assert.equal(payments.intent,'payments');
+assert.match(payments.answer,/validation/);
 
 const pipeline=betty.execute(store,{ text:'Montre-moi le pipeline commercial' },commercial);
 assert.equal(pipeline.view,'commercial');
