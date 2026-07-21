@@ -64,6 +64,38 @@
       "sourceLineages": ["mavik-core"],
       "decision": "not-enabled",
       "evaluation": ["tests", "accessibility", "security", "documentation", "two-client-reuse"]
+    },
+    {
+      "id": "assistive-input-matrix",
+      "title": "Tester la commande par voix, contacteur, regard, clavier adapté et dispositif de CAA",
+      "status": "candidate",
+      "sourceLineages": ["betty", "mavik-core"],
+      "decision": "not-enabled",
+      "evaluation": ["user-testing", "device-compatibility", "fallback", "privacy", "error-recovery"]
+    },
+    {
+      "id": "live-speech-to-text",
+      "title": "Transcrire en direct la parole en texte avec consentement et correction",
+      "status": "candidate",
+      "sourceLineages": ["betty"],
+      "decision": "not-enabled",
+      "evaluation": ["consent", "local-processing", "accuracy", "speaker-labels", "retention", "manual-correction"]
+    },
+    {
+      "id": "accessible-identity-alternatives",
+      "title": "Proposer passkey, dispositif matériel ou parcours assisté lorsque le code PIN n'est pas utilisable",
+      "status": "candidate",
+      "sourceLineages": ["mavik-core"],
+      "decision": "not-enabled",
+      "evaluation": ["security", "independence", "trusted-assistance", "recovery", "audit"]
+    },
+    {
+      "id": "cognitive-language-adaptation",
+      "title": "Adapter vocabulaire, longueur, rythme et confirmation aux besoins cognitifs de la personne",
+      "status": "candidate",
+      "sourceLineages": ["betty", "mavik-core"],
+      "decision": "not-enabled",
+      "evaluation": ["user-testing", "meaning-preservation", "critical-information", "reversibility", "role-consistency"]
     }
   ]
 }
