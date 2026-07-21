@@ -1,5 +1,12 @@
 # Journal du modèle MAVIK vierge
 
+## 0.2.0 — 2026-07-21
+
+- ajout du profil d'accès multimodal combinable par utilisateur ;
+- ajout de la communication assistée du texte vers la parole, désactivée par défaut ;
+- ajout au backlog de la transcription en direct, des dispositifs de CAA, du contacteur, du pilotage oculaire et des alternatives sûres au code PIN ;
+- conservation de la validation humaine, de la séparation des rôles et du retour arrière.
+
 ## 0.1.0 — 2026-07-20
 
 - création du dossier séparé et versionné ;
