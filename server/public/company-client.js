@@ -11,6 +11,7 @@
     benedicte:{ id:'demo-direction', username:'benedicte', name:'Bénédicte', role:'admin' }, lina:{ id:'demo-commercial', username:'lina', name:'Lina', role:'commercial' },
     emma:{ id:'demo-secretariat', username:'emma', name:'Emma', role:'secretary' }, louis:{ id:'demo-accounting', username:'louis', name:'Louis', role:'accountant' }, nora:{ id:'demo-product', username:'nora', name:'Nora', role:'developer' }
   };
+  const DEFAULT_ACCESSIBILITY = Object.freeze({ typeToSpeak:false, textOnly:false, visualAlerts:false, reducedMotion:false, largeTargets:false, screenReaderHints:false });
   const CHANNELS = [
     ['general', 'Toute l’équipe'], ['commercial', 'Commercial'], ['secretariat', 'Secrétariat'],
     ['accounting', 'Comptabilité'], ['product', 'Produit & développement'], ['direction', 'Direction']
@@ -44,6 +45,7 @@
   let operationalBrief = null;
   let lastOperationalPriorityId = '';
   let activeAccessMode = 'comfortable';
+  let activeAccessibility = { ...DEFAULT_ACCESSIBILITY };
 
   function defaultState() {
     return {
@@ -116,6 +118,7 @@
   function saveLocal() { if (localState) localStorage.setItem(STORAGE_KEY, JSON.stringify(localState)); }
   function readDemoSession() { try { const session=JSON.parse(localStorage.getItem(DEMO_SESSION_KEY)||'null'); return session?.username&&DEMO_PROFILES[session.username]?session:null; } catch { return null; } }
   function readDemoAccounts() { try { return JSON.parse(localStorage.getItem(DEMO_ACCOUNTS_KEY)||'{}'); } catch { return {}; } }
+  function normalizeAccessibility(input = {}) { return Object.fromEntries(Object.keys(DEFAULT_ACCESSIBILITY).map((key) => [key, input[key] === true])); }
   function activateDemoProfile(username) {
     const profile=DEMO_PROFILES[username]||DEMO_PROFILES.benedicte;localState.user={...profile};
     localState.directory=(localState.directory||[]).map((person)=>({...person,isSelf:person.id===profile.id}));
@@ -129,6 +132,14 @@
     document.body.classList.remove('access-large','access-contrast','access-simple');if(activeAccessMode!=='comfortable')document.body.classList.add(`access-${activeAccessMode}`);
     document.querySelectorAll('[data-profile-mode]').forEach((button)=>button.setAttribute('aria-pressed',String(button.dataset.profileMode===activeAccessMode)));
   }
+  function applyAccessibility(input = {}) {
+    activeAccessibility=normalizeAccessibility(input);
+    const classMap={largeTargets:'access-large-targets',reducedMotion:'access-reduced-motion',screenReaderHints:'access-screen-reader',visualAlerts:'access-visual-alert'};
+    Object.entries(classMap).forEach(([key,className])=>document.body.classList.toggle(className,activeAccessibility[key]));
+    document.querySelectorAll('[data-access-feature]').forEach((button)=>button.setAttribute('aria-pressed',String(activeAccessibility[button.dataset.accessFeature]===true)));
+    $('voiceButton').hidden=!activeAccessibility.typeToSpeak;
+    if(activeAccessibility.reducedMotion)setMascotMotion(true);
+  }
   function sum(items, key) { return (items || []).reduce((total, item) => total + Number(item[key] || 0), 0); }
   function localOverview(state) {
     const role=state.user?.role||'trainee';const visible=(collection,key=collection)=>localCan(role,collection)?(state[key]||[]):[];
@@ -137,7 +148,7 @@
     const activeSubscriptions = subscriptions.filter((item) => /actif/i.test(item.status));
     const unpaid = invoices.filter((item) => !/payée|annul/i.test(item.status));
     return {
-      profile: { company: 'Avenor', product: 'MAVIK', assistant: 'Betty', mode: 'software-company' }, user: { ...state.user, accessMode:readDemoAccounts()[state.user.username]?.accessMode||'comfortable' },
+      profile: { company: 'Avenor', product: 'MAVIK', assistant: 'Betty', mode: 'software-company' }, user: { ...state.user, accessMode:readDemoAccounts()[state.user.username]?.accessMode||'comfortable', accessibility:normalizeAccessibility(readDemoAccounts()[state.user.username]?.accessibility) },
       areas: (ROLE_AREAS[role]||[]).map((id) => ({ id })),
       metrics: {
         pipeline: sum(activeOpportunities, 'value'), weightedPipeline: Math.round(activeOpportunities.reduce((total, item) => total + item.value * item.probability / 100, 0)),
@@ -200,7 +211,7 @@
       apiMode = false;const session=readDemoSession();if(!session){location.replace('login.html?next=company.html');return;}localState = loadLocal();activateDemoProfile(session.username);overview = localOverview(localState); operationalBrief=demoOperationalBrief();calendarSettings = { calendars: localState.calendars, configured: localState.calendars.some((item) => item.configured), feedUrl: '' }; messages = localState.messages; directory = localState.directory;
     }
     const allowed=new Set((overview.areas||[]).map((area)=>area.id));const requested=new URLSearchParams(location.search).get('view');const roleHome=ROLE_HOME[overview.user?.role]||'dashboard';currentView=requested&&(requested==='dashboard'||requested==='calendar'||requested==='messages'||allowed.has(requested))?requested:(allowed.has(roleHome)?roleHome:'dashboard');
-    const first=operationalBrief?.firstRecommendation;applyAccessMode(overview.user?.accessMode||overview.user?.preferences?.accessMode||'comfortable');$('profileButtonLabel').textContent=overview.user?.name||'Profil';$('bettyAnswer').textContent=first?`Bonjour ${String(overview.user?.name||'').split(' ')[0]||''}. Ma priorité n°1 est : ${first.title}. ${first.why}`:`Bonjour ${String(overview.user?.name||'').split(' ')[0]||''}. ${operationalBrief?.promise||'Je suis prête à travailler avec vous.'}`;
+    const first=operationalBrief?.firstRecommendation;applyAccessMode(overview.user?.accessMode||overview.user?.preferences?.accessMode||'comfortable');applyAccessibility(overview.user?.accessibility||overview.user?.preferences?.accessibility);$('profileButtonLabel').textContent=overview.user?.name||'Profil';$('bettyAnswer').textContent=first?`Bonjour ${String(overview.user?.name||'').split(' ')[0]||''}. Ma priorité n°1 est : ${first.title}. ${first.why}`:`Bonjour ${String(overview.user?.name||'').split(' ')[0]||''}. ${operationalBrief?.promise||'Je suis prête à travailler avec vous.'}`;
     updateOperationalIndicators();lastOperationalPriorityId=operationalBrief?.firstRecommendation?.id||'';render();updateBettyPriority();setTimeout(()=>$('bettyInput').focus(),150);if(apiMode)setInterval(()=>pollOperationalBrain(true),30000);
   }
 
@@ -391,19 +402,28 @@
   document.querySelectorAll('[data-betty]').forEach((button)=>button.addEventListener('click',()=>askBetty(button.dataset.betty)));
   $('mobileMenu').addEventListener('click',()=>document.querySelector('.company-sidebar').classList.toggle('open'));
   $('profileButton').addEventListener('click',()=>{
-    if(apiMode){location.href='/profile';return;}
-    $('profileDialogName').textContent=overview.user?.name||'Profil';$('profileDialogRole').textContent=ROLE_LABELS[overview.user?.role]||overview.user?.role||'';applyAccessMode(activeAccessMode);$('profileStatus').textContent='';$('profileDialog').showModal();
+    $('profileDialogName').textContent=overview.user?.name||'Profil';$('profileDialogRole').textContent=ROLE_LABELS[overview.user?.role]||overview.user?.role||'';applyAccessMode(activeAccessMode);applyAccessibility(activeAccessibility);$('profileStatus').textContent='';$('fullProfile').hidden=!apiMode;$('profileDialog').showModal();
   });
   document.querySelectorAll('[data-profile-mode]').forEach((button)=>button.addEventListener('click',async()=>{
     const mode=button.dataset.profileMode;applyAccessMode(mode);
     if(apiMode){try{await api('/api/profile',{method:'PATCH',body:JSON.stringify({preferences:{accessMode:mode}})});$('profileStatus').textContent='Adaptation enregistrée.';}catch(error){$('profileStatus').textContent=error.message;}return;}
     const accounts=readDemoAccounts(),username=localState.user?.username;if(accounts[username]){accounts[username].accessMode=mode;localStorage.setItem(DEMO_ACCOUNTS_KEY,JSON.stringify(accounts));}overview.user.accessMode=mode;$('profileStatus').textContent='Adaptation enregistrée dans ce profil.';
   }));
+  document.querySelectorAll('[data-access-feature]').forEach((button)=>button.addEventListener('click',async()=>{
+    const next={...activeAccessibility,[button.dataset.accessFeature]:!activeAccessibility[button.dataset.accessFeature]};applyAccessibility(next);
+    if(apiMode){try{const data=await api('/api/profile',{method:'PATCH',body:JSON.stringify({preferences:{accessibility:next}})});activeAccessibility=normalizeAccessibility(data.user?.preferences?.accessibility||next);applyAccessibility(activeAccessibility);$('profileStatus').textContent='Façon de travailler enregistrée.';}catch(error){$('profileStatus').textContent=error.message;}return;}
+    const accounts=readDemoAccounts(),username=localState.user?.username;accounts[username]={...(accounts[username]||{}),accessibility:next};localStorage.setItem(DEMO_ACCOUNTS_KEY,JSON.stringify(accounts));overview.user.accessibility=next;$('profileStatus').textContent='Façon de travailler enregistrée dans ce profil.';
+  }));
+  $('fullProfile').addEventListener('click',()=>{location.href='/profile';});
   $('switchProfile').addEventListener('click',()=>{if(apiMode){location.href='/login';return;}localStorage.removeItem(DEMO_SESSION_KEY);location.replace('login.html?next=company.html&switch=1');});
   $('bettyToggle').addEventListener('click',()=>{const panel=document.querySelector('.betty-panel');const collapsed=panel.classList.toggle('collapsed');$('bettyToggle').textContent=collapsed?'+':'−';$('bettyToggle').setAttribute('aria-expanded',String(!collapsed));});
   function setMascotMotion(paused){$('bettyMascotStage').classList.toggle('paused',paused);$('bettyMotion').setAttribute('aria-pressed',String(paused));$('bettyMotion').textContent=paused?'Reprendre':'Pause animation';localStorage.setItem('mavik-betty-motion',paused?'paused':'active');}
   $('bettyMotion').addEventListener('click',()=>setMascotMotion(!$('bettyMascotStage').classList.contains('paused')));
   setMascotMotion(matchMedia('(prefers-reduced-motion: reduce)').matches||localStorage.getItem('mavik-betty-motion')==='paused');
+  $('voiceButton').addEventListener('click',()=>{$('voiceStatus').textContent='';$('communicationDialog').showModal();setTimeout(()=>$('voiceText').focus(),50);});
+  document.querySelectorAll('[data-phrase]').forEach((button)=>button.addEventListener('click',()=>{$('voiceText').value=button.dataset.phrase;$('voiceText').focus();}));
+  $('speakText').addEventListener('click',()=>{const phrase=$('voiceText').value.trim();if(!phrase){$('voiceStatus').textContent='Écrivez d’abord une phrase.';return;}if(!('speechSynthesis' in window)){$('voiceStatus').textContent='La voix de l’appareil n’est pas disponible. Le texte reste affiché.';return;}speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(phrase);utterance.lang='fr-FR';utterance.rate=.92;utterance.onstart=()=>{$('voiceStatus').textContent='Betty parle…';};utterance.onend=()=>{$('voiceStatus').textContent='Phrase terminée.';};utterance.onerror=()=>{$('voiceStatus').textContent='La voix n’a pas pu être utilisée. Le texte reste affiché.';};speechSynthesis.speak(utterance);});
+  $('stopSpeaking').addEventListener('click',()=>{if('speechSynthesis' in window)speechSynthesis.cancel();$('voiceStatus').textContent='Voix arrêtée.';});
 
   initialize();
 })();

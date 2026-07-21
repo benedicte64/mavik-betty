@@ -217,6 +217,24 @@
       "maturity": "candidate",
       "enabledByDefault": false,
       "humanValidation": "oauth-scope-and-data-map"
+    },
+    {
+      "id": "multimodal-access-profile",
+      "label": "Profil multimodal combinant lecture, écoute, communication et navigation",
+      "domain": "accessibility",
+      "sourceLineages": ["betty", "mavik-core"],
+      "maturity": "candidate",
+      "enabledByDefault": false,
+      "humanValidation": "user-choice-and-accessibility-test"
+    },
+    {
+      "id": "assistive-type-to-speech",
+      "label": "Communication assistée du texte vers la parole sur l'appareil",
+      "domain": "accessibility",
+      "sourceLineages": ["betty"],
+      "maturity": "candidate",
+      "enabledByDefault": false,
+      "humanValidation": "user-choice-voice-and-privacy"
     }
   ]
 }
