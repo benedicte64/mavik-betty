@@ -32,6 +32,8 @@ Plusieurs choix peuvent être combinés. Ils appartiennent au profil de la perso
 - bouton permanent **Parler à Betty** et raccourci `Alt+B` ;
 - briefing vocal optionnel sur les e-mails, rendez-vous, commandes, devis, règlements et tâches ;
 - confirmation ou annulation orale avant toute écriture proposée par Betty.
+- mode **Sans les mains** activé volontairement pour la session, avec commandes vocales de navigation et arrêt immédiat ;
+- balayage automatique pour contacteur unique, sans déclenchement automatique de l'action ciblée.
 
 La synthèse vocale de **Ma voix** utilise le moteur disponible dans le navigateur ou l'appareil. MAVIK ne conserve pas le texte saisi. Pour des informations sensibles, l'installation devra sélectionner et vérifier une voix fonctionnant hors ligne, car le traitement exact dépend du navigateur et du système.
 
@@ -64,10 +66,13 @@ Les capacités suivantes restent à prototyper puis à valider avant toute activ
 9. Betty ne prétend jamais disposer d'une source réelle qui n'est pas connectée.
 
 Le parcours détaillé pour une personne aveugle est décrit dans `MODE_VOCAL_AVEUGLE.md`.
+Le parcours sans usage des mains est décrit dans [`MODE_SANS_MAINS.md`](./MODE_SANS_MAINS.md).
 
 ## Référentiels de contrôle
 
 La cible de conception est WCAG 2.2 niveau AA. Pour le contexte français, le contrôle doit aussi suivre la méthode RGAA 4.1.2 actuellement publiée. Les critères automatisables doivent être intégrés à la CI, mais l'audit clavier, lecteur d'écran, zoom, contraste, compréhension et essais utilisateurs reste humain.
+
+Le détail des références WCAG, EN 301 549 et RGAA, ainsi que la barrière de livraison, est consigné dans [`SOCLE_ACCESSIBILITE.md`](./SOCLE_ACCESSIBILITE.md).
 
 ## Prochaine recette prioritaire
 

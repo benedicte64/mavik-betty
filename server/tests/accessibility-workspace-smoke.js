@@ -18,6 +18,8 @@ for (const source of [login, company]) {
   assert.match(source, /data-access-feature="screenReaderHints"/, 'screen-reader prioritization must be offered as an explicit profile choice');
   assert.match(source, /data-access-feature="voiceFirst"/, 'voice-first work must be an explicit profile choice');
   assert.match(source, /data-access-feature="dailyBriefing"/, 'the proactive briefing must be an explicit profile choice');
+  assert.match(source, /data-access-feature="handsFree"/, 'hands-free voice control must be an explicit profile choice');
+  assert.match(source, /data-access-feature="switchScanning"/, 'single-switch scanning must be an explicit profile choice');
 }
 
 assert.match(login, /aria-live="polite"/, 'Betty login messages must remain available as live text');
@@ -27,10 +29,15 @@ assert.match(login, /Je ne les répéterai pas/, 'Betty must explicitly promise 
 assert.match(company, /id="communicationDialog"/, 'the workspace must include the personal voice dialog');
 assert.match(company, /id="voiceText"/, 'the personal voice dialog must use a labelled text input');
 assert.match(company, /id="commandVoiceButton"/, 'the workspace must expose a permanent talk-to-Betty control');
+assert.match(company, /id="handsFreeButton"/, 'the workspace must expose an explicit hands-free session control');
+assert.match(company, /id="switchScanButton"/, 'the workspace must expose an explicit single-switch scan control');
 assert.match(voice, /SpeechSynthesisUtterance/, 'the shared voice layer must use browser speech synthesis');
 assert.match(voice, /SpeechRecognition|webkitSpeechRecognition/, 'the shared voice layer must detect browser speech recognition');
 assert.match(client, /DEFAULT_ACCESSIBILITY/, 'assistive options must have explicit disabled defaults');
 assert.match(client, /listenForConfirmation/, 'a material voice action must ask for an explicit spoken confirmation');
+assert.match(client, /handleHandsFreeCommand/, 'hands-free navigation commands must be handled separately from business requests');
+assert.match(client, /stopHandsFreeSession/, 'hands-free listening must have an immediate stop mechanism');
+assert.match(client, /availableControls/, 'single-switch scanning must use the currently available controls');
 
 require(path.join(PUBLIC, 'voice-access.js'));
 assert.equal(globalThis.BettyVoice.parseSpokenPin('un deux trois quatre'), '1234');

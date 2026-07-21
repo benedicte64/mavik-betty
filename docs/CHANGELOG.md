@@ -2,6 +2,28 @@
 
 Toutes les évolutions fonctionnelles, architecturales et documentaires significatives sont consignées ici.
 
+## 2026-07-21 — Betty sans les mains
+
+### Ajouté
+
+- Session vocale volontaire avec commandes suivant, précédent, lire, ouvrir, confirmer, annuler et arrêter.
+- Navigation vocale directe vers les espaces autorisés par le rôle.
+- Balayage automatique des commandes visibles pour un contacteur unique configuré comme Entrée ou Espace.
+- Indicateur visuel renforcé, annonces `aria-live`, raccourcis `Alt+M` et `Alt+S`, et arrêt immédiat par `Échap`.
+- Préférences séparées par profil et désactivées par défaut.
+- Documentation des limites navigateur, confidentialité, contacteurs et futurs essais utilisateurs.
+- Le serveur de démonstration passe en version `0.37.0`.
+
+## 2026-07-21 — Socle de référence accessibilité
+
+### Décidé
+
+- WCAG 2.2 niveau AA devient la cible de conception de MAVIK Betty.
+- L'EN 301 549 v3.2.1 reste la référence européenne TIC et correspond à WCAG 2.1 AA pour ses exigences web.
+- RGAA 4.1.2, ses 106 critères et ses 13 thématiques deviennent la méthode française de vérification ; RGAA 5 reste sous veille jusqu'à sa publication annoncée fin 2026.
+- Les tests automatiques ne suffisent pas : audit humain, lecteur d'écran, clavier, rôles et essais avec les personnes concernées sont exigés avant de qualifier une option d'éprouvée.
+- `gentlecar64-ship-it/app` est enregistré comme source de vérité déclarée du programme vierge, avec synchronisation bloquée tant que le connecteur GitHub n'y accède pas.
+
 ## 2026-07-21 — Betty voix d’abord pour une personne aveugle
 
 ### Ajouté
